@@ -3,23 +3,20 @@ import { registerGuardrails } from './modules/guardrails.js';
 import { registerCommands } from './modules/commands.js';
 import { registerStudioPane } from './modules/ui-pane.js';
 import { CraftCatalog } from '../lib/okf-catalog.js';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const craftCatalog = new CraftCatalog(path.join(__dirname, '..', 'craft'));
+import { pathJoin } from '../lib/taxonomy.js';
 
 /**
  * Main Claude Code Mod entry point.
- * Claude Code calls register(on) when the mod loads.
+ * Claude Code calls register(on, options) when the mod loads.
  *
  * @param {Function} on The hook registration function
+ * @param {Record<string, any>} [options] Mod load options (e.g. pluginRoot, dir)
  */
-export function register(on) {
+export function register(on, options = {}) {
   // 1. Register Sovereignty Guardrails (Immunity Shield & Bracket Method)
   registerGuardrails(on);
 
-  // 2. Register Natural Slash Commands (/studio, /status, /checkpoint, /graduate)
+  // 2. Register Natural Slash Commands (/studio, /story-status, /checkpoint, /graduate)
   registerCommands(on);
 
   // 3. Register Interactive Studio Pane & UI Rendering
@@ -30,7 +27,7 @@ export function register(on) {
     await $.tool.register({
       name: 'craft_lookup',
       description:
-        'Lookup narrative theory from the 127 OKF Craft modules (Story Grid 5 Commandments, Dwight Swain MRUs, value progressions, scene structure). Call this to give precise craft feedback without loading entire libraries into context.',
+        'Lookup narrative theory from the 133 OKF Craft modules (Story Grid 5 Commandments, Dwight Swain MRUs, value progressions, scene structure). Call this to give precise craft feedback without loading entire libraries into context.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -46,16 +43,21 @@ export function register(on) {
     return next(e);
   });
 
-  // Handle mcp__soundingboard__craft_lookup
-  on('tool.call', { tool: 'mcp__soundingboard__craft_lookup' }, async ($, e) => {
-    const topic = e.topic || '';
-    const results = craftCatalog.search(topic);
+  // Handle craft_lookup tool call
+  on('tool.call', { tool: ['craft_lookup', 'mcp__soundingboard__craft_lookup'] }, async ($, e) => {
+    const modDir = options?.pluginRoot || options?.dir || '.';
+    const craftDir = pathJoin(modDir, 'craft');
+    const catalog = new CraftCatalog($, craftDir);
+    await catalog.loadIndex();
+
+    const topic = e.topic || e.args?.topic || '';
+    const results = catalog.search(topic);
     if (results.length === 0) {
       return { result: `No specific craft module found for "${topic}". General storytelling principles apply.` };
     }
 
     const top = results[0];
-    const content = craftCatalog.readModule(top.relativePath || top.id);
+    const content = await catalog.readModule(top.relativePath || top.id);
     return {
       result: `### Craft Guidance: ${top.title}\n\n${content || top.summary}`,
     };

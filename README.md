@@ -52,19 +52,24 @@ claude --plugin-dir /path/to/Soundingboard-mod
 
 ---
 
-## Craft Slash Commands
+## Craft Slash Commands & Creative Skills
 
+### Slash Commands
 | Command | Action |
 | :--- | :--- |
 | `/studio` | Toggles the interactive Soundingboard Studio pane |
 | `/story-status` | Sub-10ms project ledger print (tokens, scenes, tiers) |
+| `/checkpoint` | Records creative history evolution to Git |
+| `/graduate` | Promotes a polished draft from `writers_room/` to `stages/` |
+
+### Creative Skills
+| Skill | Action |
+| :--- | :--- |
 | `/beat` | Scene Beat Sheet & 5 Commandments planning volley |
 | `/interview` | In-character psychological interview (WWXD) |
 | `/bloom` | Sensory Blooming & atmospheric world expansion |
 | `/critique` | Developmental editing quarantined in The Bracket Method |
-| `/humanize` | AI-Tell and cadence diagnostics with 3-choice red-pen options |
-| `/checkpoint` | Records creative history evolution to Git |
-| `/graduate` | Promotes a polished draft from `writers_room/` to `stages/` |
+| `humanize` | AI-Tell and cadence diagnostics with 3-choice red-pen options |
 
 ---
 
@@ -86,9 +91,10 @@ soundingboard-mod/
 │   ├── taxonomy.js          # Tier 0-3 resolution & path protection
 │   ├── tokens.js            # Deterministic token estimator & budgets
 │   ├── okf-parser.js        # Frontmatter & entity extraction
-│   └── okf-catalog.js       # 127 Craft module retrieval engine
-├── craft/                   # OKF Craft Knowledge Set (Story Grid & MRU)
-├── skills/                  # Prompt skills for /beat, /critique, /bloom
+│   └── okf-catalog.js       # 133 Craft module retrieval engine
+├── craft/                   # 133 OKF Craft Knowledge Modules (Story Grid & MRU)
+├── skills/                  # Prompt skills for beat, critique, bloom, humanize
+├── scripts/                 # Standalone author diagnostic tools (cadence, heatmap, rhythm)
 └── templates/               # Scaffolding templates for scenes & canon
 ```
 

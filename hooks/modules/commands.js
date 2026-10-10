@@ -1,26 +1,24 @@
 // @ts-check
-import { resolveWorkspace } from '../../lib/taxonomy.js';
+import { resolveWorkspace, pathJoin, pathBasename } from '../../lib/taxonomy.js';
 import { estimateTokens, checkTokenBudget } from '../../lib/tokens.js';
-import fs from 'node:fs';
-import path from 'node:path';
 
 /**
  * Registers natural, craft-first slash commands:
- * /studio, /status, /checkpoint, /graduate
+ * /studio, /story-status, /checkpoint, /graduate
  *
  * @param {Function} on Claude Code mod hook registration function
  */
 export function registerCommands(on) {
   // session.start: Register slash commands
   on('session.start', async ($, e, next) => {
-    // 1. /studio (or /soundingboard) - Opens the visual workspace pane
+    // 1. /studio - Opens the visual workspace pane
     await $.command.register({
       name: 'studio',
       description: 'Open the Soundingboard Studio pane (Token ledger, continuity, craft codex)',
       immediate: true,
     });
 
-    // 2. /story-status - Instant 10ms story health check without burning a Claude turn
+    // 2. /story-status - Instant story health check without burning a Claude turn
     await $.command.register({
       name: 'story-status',
       description: 'Display story ledger, active tier, and token footprints',
@@ -56,27 +54,40 @@ export function registerCommands(on) {
   });
 
   // Handle /story-status
-  on('command.run', { command: 'story-status' }, async () => {
-    const ws = resolveWorkspace();
+  on('command.run', { command: 'story-status' }, async ($) => {
+    const ws = await resolveWorkspace($);
     if (!ws.isSoundingboard) {
       return {
         text: 'Not in a Soundingboard workspace. Type `/init` to scaffold a novel studio.',
       };
     }
 
-    // Inspect canon and scenes
+    // Inspect canon and scenes using $.fs
     let canonTokens = 0;
-    const canonPath = path.join(ws.rootPath, 'stages', 'canon.md');
-    if (fs.existsSync(canonPath)) {
-      canonTokens = estimateTokens(fs.readFileSync(canonPath, 'utf-8'));
+    const canonPath = pathJoin(ws.rootPath, 'stages', 'canon.md');
+    try {
+      const canonData = await $.fs.read(canonPath);
+      if (typeof canonData === 'string') {
+        canonTokens = estimateTokens(canonData);
+      }
+    } catch {
+      canonTokens = 0;
     }
 
     const canonBudget = checkTokenBudget('canon', canonTokens);
 
     let sceneCount = 0;
-    const stagesDir = path.join(ws.rootPath, 'stages');
-    if (fs.existsSync(stagesDir)) {
-      sceneCount = fs.readdirSync(stagesDir).filter((f) => f.endsWith('.md') && f !== 'canon.md').length;
+    const stagesDir = pathJoin(ws.rootPath, 'stages');
+    try {
+      const stageFiles = await $.fs.list(stagesDir);
+      if (Array.isArray(stageFiles)) {
+        sceneCount = stageFiles.filter((f) => {
+          const name = typeof f === 'string' ? f : f?.name || '';
+          return name.endsWith('.md') && name !== 'canon.md';
+        }).length;
+      }
+    } catch {
+      sceneCount = 0;
     }
 
     const report = [
@@ -91,32 +102,38 @@ export function registerCommands(on) {
     return { text: report };
   });
 
-  // Handle /graduate: Move a draft from writers_room/ to stages/
+  // Handle /graduate: Move a draft from writers_room/ to stages/ using $.fs.read and $.fs.write
   on('command.run', { command: 'graduate' }, async ($, e) => {
     const fileArg = e.args?.trim();
     if (!fileArg) {
       return { text: 'Usage: `/graduate <file>` (e.g. `/graduate writers_room/drafts/ch1_opening.md`)' };
     }
 
-    const ws = resolveWorkspace();
-    const sourcePath = path.isAbsolute(fileArg) ? fileArg : path.join(ws.rootPath, fileArg);
+    const ws = await resolveWorkspace($);
+    const sourcePath = fileArg.startsWith('/') ? fileArg : pathJoin(ws.rootPath, fileArg);
 
-    if (!fs.existsSync(sourcePath)) {
-      return { text: `❌ File not found: \`${fileArg}\`` };
+    let draftContent = null;
+    try {
+      draftContent = await $.fs.read(sourcePath);
+    } catch {
+      draftContent = null;
     }
 
-    const baseName = path.basename(sourcePath);
-    const stagesDir = path.join(ws.rootPath, 'stages');
-    if (!fs.existsSync(stagesDir)) {
-      fs.mkdirSync(stagesDir, { recursive: true });
+    if (!draftContent) {
+      return { text: `❌ File not found or unreadable: \`${fileArg}\`` };
     }
 
-    const targetPath = path.join(stagesDir, baseName);
-    fs.copyFileSync(sourcePath, targetPath);
+    const baseName = pathBasename(sourcePath);
+    const targetPath = pathJoin(ws.rootPath, 'stages', baseName);
 
-    return {
-      text: `🎓 Scene successfully graduated to stages!\n* Source: \`${sourcePath}\`\n* Staged: \`${targetPath}\`\n\nThe Immunity Shield is lifted; scene is now part of the canonical production pool.`
-    };
+    try {
+      await $.fs.write(targetPath, draftContent);
+      return {
+        text: `🎓 Scene successfully graduated to stages!\n* Source: \`${sourcePath}\`\n* Staged: \`${targetPath}\`\n\nThe Immunity Shield is lifted; scene is now part of the canonical production pool.`
+      };
+    } catch (err) {
+      return { text: `❌ Failed to graduate scene: ${err?.message || 'write failed'}` };
+    }
   });
 
   // Handle /checkpoint (Playbook #21) using $.process.run

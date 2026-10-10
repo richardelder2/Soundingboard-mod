@@ -1,8 +1,6 @@
 // @ts-check
-import { resolveWorkspace } from '../../lib/taxonomy.js';
+import { resolveWorkspace, pathJoin } from '../../lib/taxonomy.js';
 import { estimateTokens, checkTokenBudget } from '../../lib/tokens.js';
-import fs from 'node:fs';
-import path from 'node:path';
 
 const PANE_ID = 'soundingboard-studio';
 
@@ -26,7 +24,7 @@ export function registerStudioPane(on) {
     const { Box, Text, Button } = $.ui.resolve(e);
     const redraw = () => $.ui.invalidate('ui.render');
 
-    const ws = resolveWorkspace();
+    const ws = await resolveWorkspace($);
 
     // Tab switcher button generator
     const tabBtn = (key, label) =>
@@ -48,9 +46,17 @@ export function registerStudioPane(on) {
     if (activeTab === 'status') {
       let sceneCount = 0;
       if (ws.isSoundingboard) {
-        const stagesDir = path.join(ws.rootPath, 'stages');
-        if (fs.existsSync(stagesDir)) {
-          sceneCount = fs.readdirSync(stagesDir).filter((f) => f.endsWith('.md') && f !== 'canon.md').length;
+        const stagesDir = pathJoin(ws.rootPath, 'stages');
+        try {
+          const files = await $.fs.list(stagesDir);
+          if (Array.isArray(files)) {
+            sceneCount = files.filter((f) => {
+              const name = typeof f === 'string' ? f : f?.name || '';
+              return name.endsWith('.md') && name !== 'canon.md';
+            }).length;
+          }
+        } catch {
+          sceneCount = 0;
         }
       }
 
@@ -63,9 +69,14 @@ export function registerStudioPane(on) {
     } else if (activeTab === 'tokens') {
       let canonTokens = 0;
       if (ws.isSoundingboard) {
-        const canonPath = path.join(ws.rootPath, 'stages', 'canon.md');
-        if (fs.existsSync(canonPath)) {
-          canonTokens = estimateTokens(fs.readFileSync(canonPath, 'utf-8'));
+        const canonPath = pathJoin(ws.rootPath, 'stages', 'canon.md');
+        try {
+          const canonData = await $.fs.read(canonPath);
+          if (typeof canonData === 'string') {
+            canonTokens = estimateTokens(canonData);
+          }
+        } catch {
+          canonTokens = 0;
         }
       }
       const budget = checkTokenBudget('canon', canonTokens);
@@ -77,7 +88,7 @@ export function registerStudioPane(on) {
       ];
     } else if (activeTab === 'codex') {
       tabBody = [
-        Text({ children: ['OKF Craft Codex: 127 Modules Ready'] }),
+        Text({ children: ['OKF Craft Codex: 133 Modules Ready'] }),
         Text({ children: ['• Five Commandments of the Scene'] }),
         Text({ children: ['• Motivating-Reaction Units (Dwight Swain)'] }),
         Text({ children: ['• Value Progression & Emotional Polarity'] }),
