@@ -39,15 +39,16 @@ This repository is an official **Claude Code Mod** running directly in-process i
 ### Option 1: Direct Marketplace Add
 In any Claude Code session:
 ```bash
-/plugin marketplace add richardelder2/soundingboard-mod
+/plugin marketplace add richardelder2/Soundingboard-mod
 /plugin install soundingboard@soundingboard-marketplace
 ```
 
 ### Option 2: Local Session Testing
 Clone this repository and launch Claude Code:
 ```bash
-claude --plugin-dir /path/to/soundingboard-mod
+claude --plugin-dir /path/to/Soundingboard-mod
 ```
+
 
 ---
 
