@@ -27,7 +27,7 @@ This repository is an official **Claude Code Mod** running directly in-process i
    Edits to completed scenes in `stages/` are intercepted in memory. All AI critique and suggestions must be framed as bracketed choices: `[Option A: Cut | Option B: Physical Action | Option C: Keep as author voice]`.
 3. **Interactive Studio Pane (`/studio`):**
    A live sidebar pane inside the terminal and Claude Desktop App displaying active Tier complexity, scene counts, token footprints, and craft codex browsing without burning LLM turns.
-4. **127 OKF Craft Modules (Story Grid & Swain MRUs):**
+4. **133 OKF Craft Modules (Story Grid & Swain MRUs):**
    Bundled storytelling theory served on-demand via `craft_lookup` tools, saving 99% of token context.
 5. **Creative History in Git (`/checkpoint`):**
    Files contain the meaning; Git records the evolution (Playbook #21). Commits occur only when the author commands.
@@ -57,7 +57,7 @@ claude --plugin-dir /path/to/Soundingboard-mod
 | Command | Action |
 | :--- | :--- |
 | `/studio` | Toggles the interactive Soundingboard Studio pane |
-| `/status` | Sub-10ms project ledger print (tokens, scenes, tiers) |
+| `/story-status` | Sub-10ms project ledger print (tokens, scenes, tiers) |
 | `/beat` | Scene Beat Sheet & 5 Commandments planning volley |
 | `/interview` | In-character psychological interview (WWXD) |
 | `/bloom` | Sensory Blooming & atmospheric world expansion |

@@ -20,9 +20,9 @@ export function registerCommands(on) {
       immediate: true,
     });
 
-    // 2. /status - Instant 10ms story health check without burning a Claude turn
+    // 2. /story-status - Instant 10ms story health check without burning a Claude turn
     await $.command.register({
-      name: 'status',
+      name: 'story-status',
       description: 'Display story ledger, active tier, and token footprints',
       immediate: true,
     });
@@ -55,8 +55,8 @@ export function registerCommands(on) {
     return {};
   });
 
-  // Handle /status
-  on('command.run', { command: 'status' }, async () => {
+  // Handle /story-status
+  on('command.run', { command: 'story-status' }, async () => {
     const ws = resolveWorkspace();
     if (!ws.isSoundingboard) {
       return {
@@ -91,14 +91,47 @@ export function registerCommands(on) {
     return { text: report };
   });
 
-  // Handle /checkpoint (Playbook #21)
+  // Handle /graduate: Move a draft from writers_room/ to stages/
+  on('command.run', { command: 'graduate' }, async ($, e) => {
+    const fileArg = e.args?.trim();
+    if (!fileArg) {
+      return { text: 'Usage: `/graduate <file>` (e.g. `/graduate writers_room/drafts/ch1_opening.md`)' };
+    }
+
+    const ws = resolveWorkspace();
+    const sourcePath = path.isAbsolute(fileArg) ? fileArg : path.join(ws.rootPath, fileArg);
+
+    if (!fs.existsSync(sourcePath)) {
+      return { text: `❌ File not found: \`${fileArg}\`` };
+    }
+
+    const baseName = path.basename(sourcePath);
+    const stagesDir = path.join(ws.rootPath, 'stages');
+    if (!fs.existsSync(stagesDir)) {
+      fs.mkdirSync(stagesDir, { recursive: true });
+    }
+
+    const targetPath = path.join(stagesDir, baseName);
+    fs.copyFileSync(sourcePath, targetPath);
+
+    return {
+      text: `🎓 Scene successfully graduated to stages!\n* Source: \`${sourcePath}\`\n* Staged: \`${targetPath}\`\n\nThe Immunity Shield is lifted; scene is now part of the canonical production pool.`
+    };
+  });
+
+  // Handle /checkpoint (Playbook #21) using $.process.run
   on('command.run', { command: 'checkpoint' }, async ($, e) => {
     const msg = e.args?.trim() || 'Narrative evolution checkpoint';
     try {
-      const res = await $.process.spawn('git', ['commit', '-am', `[sb-checkpoint] ${msg}`]);
-      return { text: `✅ Checkpoint recorded in Git: "${msg}"` };
+      const res = await $.process.run(['git', 'commit', '-am', `[sb-checkpoint] ${msg}`]);
+      if (res && res.exitCode === 0) {
+        return { text: `✅ Checkpoint recorded in Git: "${msg}"` };
+      } else {
+        const errDetail = res?.stderr || res?.stdout || 'Nothing to commit or git error.';
+        return { text: `⚠️ Checkpoint notice: ${errDetail.trim()}` };
+      }
     } catch (err) {
-      return { text: `⚠️ Checkpoint notice: ${err?.message || 'Git not initialized or no changes.'}` };
+      return { text: `⚠️ Checkpoint failed: ${err?.message || 'Git not initialized.'}` };
     }
   });
 }
