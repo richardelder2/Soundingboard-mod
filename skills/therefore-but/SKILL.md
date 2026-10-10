@@ -11,6 +11,6 @@ When reviewing plot or scene beat causality:
    ```bash
    node scripts/pack-causality.js <chapter_or_beatsheet>
    ```
-3. Execute the contract natively per `_config/templates/causal_calculus_playbook.template.md`.
+3. Execute the contract natively per `templates/causal_calculus_playbook.template.md`.
 4. Audit each sequential beat transition pair (Beat N ➔ Beat N+1).
 5. Identify episodic "and then" drift and propose single-sentence causal rewrites using *Therefore* (consequence) or *But* (obstacle/reversal).

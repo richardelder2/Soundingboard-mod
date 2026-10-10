@@ -10,7 +10,7 @@ When integrating secondary threads into an upcoming chapter:
    ```bash
    node scripts/pack-subplot-braid.js <chapter_number>
    ```
-2. Execute the contract natively per `_config/templates/subplot_braid_playbook.template.md`.
+2. Execute the contract natively per `templates/subplot_braid_playbook.template.md`.
 3. Inspect thread starvation ($\ge 2$ chapters without mention).
 4. Propose 3 non-intrusive braiding options:
    - Level 1: Environmental / Physical Setting Texture.

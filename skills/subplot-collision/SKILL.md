@@ -10,7 +10,7 @@ When planning a major turning point or crisis:
    ```bash
    node scripts/pack-subplot-collision.js <chapter_number>
    ```
-2. Execute the contract natively per `_config/templates/subplot_collision_playbook.template.md`.
+2. Execute the contract natively per `templates/subplot_collision_playbook.template.md`.
 3. Select an intersecting collision archetype:
    - The Resource Drain (saving the subplot burns the primary quest asset).
    - The Secret Breach / Alliance Shatter.

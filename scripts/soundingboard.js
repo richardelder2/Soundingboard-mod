@@ -1,0 +1,2346 @@
+#!/usr/bin/env node
+
+import * as fs from 'fs';
+import * as path from 'path';
+import { fork } from 'child_process';
+import { fileURLToPath } from 'url';
+import { checkUpdate, handleCheckUpdate, handleUpdate, renderUpdateBanner } from './updater.js';
+import { handleDoctor, diagnoseEnvironment, autoFixEnvironment } from './doctor.js';
+import { parse, strip } from './frontmatter.js';
+import { verifyNodeRuntime } from './preflight.js';
+import { assessModelHealth, formatModelHealthTerminal } from './model_health.js';
+
+if (!verifyNodeRuntime()) {
+  process.exit(1);
+}
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const BIN_NAME = path.basename(process.argv[1], '.js') || 'soundingboard';
+const APP_NAME = 'Soundingboard';
+
+export function readText(p) {
+  return fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '');
+}
+
+export function getCraftModuleCount() {
+  const craftDir = path.join('_config', 'okf_craft');
+  if (!fs.existsSync(craftDir)) return 92;
+  const nonModules = new Set(['index.md', 'CONTEXT.md', 'SPECIFICATION.md', 'synonyms.md']);
+  return fs.readdirSync(craftDir).filter(f => f.endsWith('.md') && !nonModules.has(f)).length;
+}
+
+export function safeParseJson(rawContent, contextLabel = 'JSON') {
+  if (typeof rawContent !== 'string') return rawContent;
+  let cleaned = rawContent.replace(/^\uFEFF/, '');
+  try {
+    return JSON.parse(cleaned);
+  } catch (initialErr) {
+    // Tolerant parser: strip comments and trailing commas
+    cleaned = cleaned.replace(/\/\*[\s\S]*?\*\//g, '');
+    cleaned = cleaned.replace(/(^|[^:])\/\/.*/g, '$1');
+    cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+
+    try {
+      return JSON.parse(cleaned);
+    } catch (recoveryErr) {
+      const lines = rawContent.split(/\r?\n/);
+      const match = recoveryErr.message.match(/position\s+(\d+)/i);
+      let errorLine = null;
+      let lineNum = 1;
+      if (match) {
+        const pos = parseInt(match[1], 10);
+        let cur = 0;
+        for (let i = 0; i < lines.length; i++) {
+          if (cur + lines[i].length + 1 >= pos) {
+            lineNum = i + 1;
+            errorLine = lines[i];
+            break;
+          }
+          cur += lines[i].length + 1;
+        }
+      }
+      console.error(`\x1b[31mError parsing ${contextLabel} at line ${lineNum}:\x1b[0m ${recoveryErr.message}`);
+      if (errorLine) {
+        console.error(`  > ${errorLine.trim()}`);
+      }
+      throw new Error(`Malformed ${contextLabel}: ${recoveryErr.message}`);
+    }
+  }
+}
+
+const args = process.argv.slice(2);
+const command = args[0];
+const subCommand = args[1];
+
+const STAGES = [
+  '01_onboarding',
+  '02_planning',
+  '03_drafting',
+  '04_diagnostics_edits',
+  '05_publishing'
+];
+
+function printHeader(text) {
+  console.log(`\n\x1b[1m\x1b[35m=== ${text} ===\x1b[0m`);
+}
+
+function copyRecursiveSync(src, dest) {
+  const exists = fs.existsSync(src);
+  const stats = exists && fs.statSync(src);
+  const isDirectory = exists && stats.isDirectory();
+  if (isDirectory) {
+    if (path.basename(src) === 'output') return;
+    fs.mkdirSync(dest, { recursive: true });
+    fs.readdirSync(src).forEach(childItemName => {
+      copyRecursiveSync(path.join(src, childItemName), path.join(dest, childItemName));
+    });
+  } else {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+  }
+}
+
+function handleInit(targetFolder) {
+  printHeader('Initializing Soundingboard Workspace');
+  
+  const templateDir = path.dirname(__dirname);
+  
+  let targetDir = process.cwd();
+  if (targetFolder) {
+    targetDir = path.isAbsolute(targetFolder) ? targetFolder : path.resolve(process.cwd(), targetFolder);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+  }
+
+  if (path.resolve(templateDir) === path.resolve(targetDir)) {
+    console.log('\x1b[33mWarning: You are running init inside the template repository itself.\x1b[0m');
+    console.log('Each novel must live in its own separate project folder.');
+    console.log('To initialize a clean novel workspace in a dedicated folder, run:');
+    console.log(`  node "${path.join(templateDir, 'scripts', 'soundingboard.js')}" init <folder_name>`);
+    console.log('Or create a blank directory elsewhere, cd into it, and run init.');
+    return;
+  }
+
+  console.log(`Initializing clean workspace at: ${targetDir}`);
+  console.log(`Template source: ${templateDir}`);
+
+  // Pre-flight check
+  const diag = diagnoseEnvironment(targetDir);
+  if (!diag.isReady) {
+    console.log('\n\x1b[31mPrerequisite check warning:\x1b[0m');
+    diag.checks.filter(c => c.status === 'fail').forEach(c => {
+      console.log(`  ✗ ${c.name}: ${c.message}`);
+      if (c.fixInstruction && c.fixInstruction.cmd) {
+        console.log(`    ↳ To install: \x1b[33m${c.fixInstruction.cmd}\x1b[0m`);
+      }
+    });
+    console.log('');
+  }
+
+  const items = [
+    '_config',
+    'setup',
+    'stages',
+    'scripts',
+    '.claude',
+    'package.json',
+    'AGENTS.md',
+    'CLAUDE.md',
+    'GEMINI.md',
+    'CONTEXT.md',
+    'README.md',
+    'LOCAL_SETUP.md',
+    'LICENSE'
+  ];
+
+  console.log('\nConfiguring files...');
+
+  items.forEach(item => {
+    const srcPath = path.join(templateDir, item);
+    const destPath = path.join(targetDir, item);
+    if (fs.existsSync(srcPath)) {
+      copyRecursiveSync(srcPath, destPath);
+      console.log(`  ✔ Copied: ${item}`);
+    }
+  });
+
+  // Copy project.gitignore if target doesn't have .gitignore
+  const gitignoreDest = path.join(targetDir, '.gitignore');
+  const projectGitignoreSrc = path.join(templateDir, '_config', 'templates', 'project.gitignore');
+  if (!fs.existsSync(gitignoreDest) && fs.existsSync(projectGitignoreSrc)) {
+    fs.copyFileSync(projectGitignoreSrc, gitignoreDest);
+    console.log('  ✔ Created project .gitignore (preserves manuscript.json and stage outputs).');
+  }
+
+  // Scaffold preferences.md at root if not present
+  const rootPrefSrc = path.join(templateDir, '_config', 'templates', 'preferences.template.md');
+  const rootPrefDest = path.join(targetDir, 'preferences.md');
+  if (fs.existsSync(rootPrefSrc) && !fs.existsSync(rootPrefDest)) {
+    fs.copyFileSync(rootPrefSrc, rootPrefDest);
+    console.log('  ✔ Created preferences.md (Author collaboration profile & boundaries)');
+  }
+
+  // Scaffold the Writer's Room (Immune creative sanctuary)
+  const writersRoomDir = path.join(targetDir, 'writers_room');
+  fs.mkdirSync(path.join(writersRoomDir, 'notes'), { recursive: true });
+  fs.mkdirSync(path.join(writersRoomDir, 'beats'), { recursive: true });
+  fs.mkdirSync(path.join(writersRoomDir, 'drafts'), { recursive: true });
+  fs.mkdirSync(path.join(writersRoomDir, 'inputs'), { recursive: true });
+
+  const roomReadmeDest = path.join(writersRoomDir, 'README.md');
+  if (!fs.existsSync(roomReadmeDest)) {
+    fs.writeFileSync(roomReadmeDest, `# The Writer's Room (Creative Sanctuary)\n\nThis folder is your creative sandbox. Write freely in any markdown editor (Obsidian, VS Code, iA Writer, etc.) or drop outside materials into \`inputs/\`.\n\n- \`notes/\`: Lore scraps, character brainstorming, scratchpad.\n- \`beats/\`: Rough outlines, bullet points, napkin sketches.\n- \`drafts/\`: Active scenes being drafted.\n- \`inputs/\`: External files, research, and Word documents.\n\n### Inviolable Immunity Shield\nDiagnostic linters and automated tests never scan or police files in this directory unless you explicitly request feedback.\n`, 'utf8');
+  }
+  console.log('  ✔ Created writers_room/ (notes/, beats/, drafts/, inputs/, README.md)');
+
+  // Scaffold inputs/ drop-zone vault (top-level alias / drop zone)
+  const inputsDrafts = path.join(targetDir, 'inputs', 'drafts');
+  const inputsNotes = path.join(targetDir, 'inputs', 'notes');
+  fs.mkdirSync(inputsDrafts, { recursive: true });
+  fs.mkdirSync(inputsNotes, { recursive: true });
+  const inputsReadmeSrc = path.join(templateDir, '_config', 'templates', 'inputs_readme.template.md');
+  const inputsReadmeDest = path.join(targetDir, 'inputs', 'README.md');
+  if (fs.existsSync(inputsReadmeSrc) && !fs.existsSync(inputsReadmeDest)) {
+    fs.copyFileSync(inputsReadmeSrc, inputsReadmeDest);
+  }
+  console.log('  ✔ Created inputs/ vault (inputs/drafts/, inputs/notes/, README.md)');
+
+  // Scaffold manuscript/scenes/ and manuscript/chapters/
+  fs.mkdirSync(path.join(targetDir, 'manuscript', 'scenes'), { recursive: true });
+  fs.mkdirSync(path.join(targetDir, 'manuscript', 'chapters'), { recursive: true });
+  console.log('  ✔ Created manuscript/ (scenes/, chapters/)');
+
+  // Support --form flag in preferences.json
+  const formArg = (process.argv.slice(2) || []).find(a => a.startsWith('--form='));
+  const formVal = formArg ? formArg.split('=')[1].toLowerCase() : 'novel';
+  const validForms = ['short_story', 'novelette', 'novella', 'novel', 'series', 'world'];
+  const chosenForm = validForms.includes(formVal) ? formVal : 'novel';
+  const isShort = ['short_story', 'novelette'].includes(chosenForm);
+
+  // Scaffolding multi-tier universe or series layers when requested
+  if (chosenForm === 'world') {
+    const worldDir = path.join(targetDir, 'world');
+    const domains = ['cosmology', 'chronology', 'geography', 'cultures', 'economy', 'factions'];
+    domains.forEach(d => fs.mkdirSync(path.join(worldDir, d), { recursive: true }));
+
+    // Seed master ICM semantic contract
+    const worldContextSrc = path.join(templateDir, '_config', 'templates', 'world_context.template.md');
+    const worldContextDest = path.join(worldDir, 'CONTEXT.md');
+    if (fs.existsSync(worldContextSrc) && !fs.existsSync(worldContextDest)) {
+      fs.copyFileSync(worldContextSrc, worldContextDest);
+    }
+
+    // Seed domain starter templates
+    const domainTemplates = [
+      { src: 'world_bible.template.md', dest: 'world_bible.md' },
+      { src: 'canon.template.md', dest: 'world_canon.md' },
+      { src: 'tracker_lore_debt.template.md', dest: 'tracker_world_lore_debt.md' },
+      { src: 'naming_system.template.md', dest: path.join('geography', 'naming_system.md') },
+      { src: 'pantheon_religion.template.md', dest: path.join('cosmology', 'pantheon.md') },
+      { src: 'chronology_era.template.md', dest: path.join('chronology', 'eras.md') },
+      { src: 'cultural_codes.template.md', dest: path.join('cultures', 'cultural_codes.md') },
+      { src: 'political_economy.template.md', dest: path.join('economy', 'political_economy.md') },
+      { src: 'faction_matrix.template.md', dest: path.join('factions', 'faction_matrix.md') }
+    ];
+
+    domainTemplates.forEach(({ src, dest }) => {
+      const srcPath = path.join(templateDir, '_config', 'templates', src);
+      const destPath = path.join(worldDir, dest);
+      if (fs.existsSync(srcPath) && !fs.existsSync(destPath)) {
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+        fs.copyFileSync(srcPath, destPath);
+      }
+    });
+
+    const worldReadmeDest = path.join(worldDir, 'README.md');
+    if (!fs.existsSync(worldReadmeDest)) {
+      fs.writeFileSync(worldReadmeDest, `# Shared Universe & World Layer (Tier 3 - ICM)\n\nThis directory holds the immutable laws of nature, magic/tech systems, cosmological timeline, and global geography shared across all series and books in this universe under Interpretable Context Methodology (ICM).\n\nSee \`CONTEXT.md\` for category schemas and dynamic agent retrieval rules.\n`, 'utf8');
+    }
+    console.log('  ✔ Created world/ universe layer (6 ICM domains, CONTEXT.md, world_bible.md, world_canon.md)');
+  } else if (chosenForm === 'series') {
+    const seriesDir = path.join(targetDir, 'series');
+    const trackersDir = path.join(seriesDir, 'trackers');
+    fs.mkdirSync(trackersDir, { recursive: true });
+
+    const seriesContextSrc = path.join(templateDir, '_config', 'templates', 'series_context.template.md');
+    const seriesContextDest = path.join(seriesDir, 'CONTEXT.md');
+    if (fs.existsSync(seriesContextSrc) && !fs.existsSync(seriesContextDest)) {
+      fs.copyFileSync(seriesContextSrc, seriesContextDest);
+    }
+
+    const seriesBibleSrc = path.join(templateDir, '_config', 'templates', 'world_bible.template.md');
+    const seriesBibleDest = path.join(seriesDir, 'series_bible.md');
+    if (fs.existsSync(seriesBibleSrc) && !fs.existsSync(seriesBibleDest)) {
+      fs.copyFileSync(seriesBibleSrc, seriesBibleDest);
+    }
+
+    const seriesCanonSrc = path.join(templateDir, '_config', 'templates', 'canon.template.md');
+    const seriesCanonDest = path.join(seriesDir, 'series_canon.md');
+    if (fs.existsSync(seriesCanonSrc) && !fs.existsSync(seriesCanonDest)) {
+      fs.copyFileSync(seriesCanonSrc, seriesCanonDest);
+    }
+    console.log('  ✔ Created series/ container layer (CONTEXT.md, series_bible.md, series_canon.md, trackers/)');
+  }
+
+  const onboardingDir = path.join(targetDir, 'stages', '01_onboarding', 'output');
+  if (!fs.existsSync(onboardingDir)) fs.mkdirSync(onboardingDir, { recursive: true });
+  const prefTarget = path.join(onboardingDir, 'preferences.json');
+  if (!fs.existsSync(prefTarget)) {
+    fs.writeFileSync(prefTarget, JSON.stringify({
+      form: chosenForm,
+      unit_type: isShort ? 'section' : 'chapter',
+      target_words: chosenForm === 'short_story' ? 5000 : chosenForm === 'novella' ? 30000 : 90000
+    }, null, 2), 'utf8');
+    console.log(`  ✔ Configured project form: ${chosenForm} in preferences.json`);
+  }
+
+  // Write default .env template if it doesn't exist
+  const envPath = path.join(targetDir, '.env');
+  if (!fs.existsSync(envPath)) {
+    const envContent = [
+      `# ${APP_NAME} Environment Variables`,
+      '# Option A: Local Edge (Ollama)',
+      'LOCAL_MODEL=true',
+      'LOCAL_MODEL_URL=http://localhost:11434/v1/chat/completions',
+      'LOCAL_MODEL_NAME=gemma2',
+      '',
+      '# Option B: OpenRouter',
+      '# USE_OPENROUTER=true',
+      '# OPENROUTER_API_KEY=your_key',
+      '# OPENROUTER_MODEL=meta-llama/llama-3-8b-instruct:free',
+      '',
+      '# Option C: Gemini Cloud',
+      '# GEMINI_API_KEY=your_key',
+      ''
+    ].join('\n');
+    fs.writeFileSync(envPath, envContent, 'utf8');
+    console.log('  ✔ Created template .env file.');
+  }
+
+  // Concierge auto-healing for workspace git tracking and author identity
+  const fixRes = autoFixEnvironment(targetDir);
+  if (fixRes.fixed && fixRes.fixed.length > 0) {
+    for (const f of fixRes.fixed) {
+      console.log(`  ✔ ${f.message}`);
+    }
+  }
+
+  console.log(`\n\x1b[32m✔ ${APP_NAME} Workspace successfully initialized! Run "npm install" to configure dependencies.\x1b[0m\n`);
+}
+
+function handleStatus(stageFilter) {
+  renderUpdateBanner();
+  printHeader('Soundingboard Stage Pipeline Status');
+
+  const filterArg = stageFilter || args.find(a => a.startsWith('--stage='));
+  const stageTarget = filterArg ? filterArg.replace('--stage=', '').replace(/^0?/, '').padStart(2, '0') : null;
+
+  const activeStages = stageTarget
+    ? STAGES.filter(s => s.startsWith(stageTarget) || s.includes(stageTarget))
+    : STAGES;
+
+  if (stageTarget && activeStages.length === 0) {
+    console.log(`No stage matching "${stageTarget}". Valid stages: 01, 02, 03, 04, 05\n`);
+    return;
+  }
+
+  activeStages.forEach(stage => {
+    const stagePath = path.join('stages', stage);
+    const contractPath = path.join(stagePath, 'CONTEXT.md');
+    const contractExists = fs.existsSync(contractPath);
+    const outputFiles = getFilesRecursive(path.join(stagePath, 'output'));
+
+    let statusText = '\x1b[31mNot Started\x1b[0m';
+    if (outputFiles.length > 0) {
+      statusText = '\x1b[32mHas Output\x1b[0m';
+    } else if (contractExists) {
+      statusText = '\x1b[33mActive / Configured\x1b[0m';
+    }
+
+    console.log(`- \x1b[1mStage ${stage}\x1b[0m: ${statusText}`);
+
+    // In drill-down mode, parse outputs declared in contract frontmatter
+    if (stageTarget && contractExists) {
+      const contractText = readText(contractPath);
+      const fmMatch = contractText.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (fmMatch) {
+        const outBlock = fmMatch[1].match(/outputs:\r?\n([\s\S]*?)(?=\r?\n[a-z_]+:|$)/i);
+        if (outBlock) {
+          console.log('    \x1b[1mDeclared Contract Outputs:\x1b[0m');
+          outBlock[1].split(/\r?\n/).filter(l => l.trim().startsWith('-')).forEach(line => {
+            const rawPath = line.trim().replace(/^-\s*/, '').trim();
+            const diskPath = rawPath.replace(/\//g, path.sep);
+            const exists = fs.existsSync(diskPath) || (diskPath.endsWith(path.sep) && fs.existsSync(diskPath.slice(0, -1)));
+            const icon = exists ? '\x1b[32m✔\x1b[0m' : '\x1b[31m✗\x1b[0m';
+            console.log(`      ${icon} ${rawPath}`);
+          });
+        }
+      }
+    }
+
+    outputFiles.forEach(file => console.log(`    ↳ \x1b[90m${file}\x1b[0m`));
+  });
+
+  const inputsDrafts = path.join('inputs', 'drafts');
+  const inputsNotes = path.join('inputs', 'notes');
+  const rawDrafts = fs.existsSync(inputsDrafts) ? fs.readdirSync(inputsDrafts).filter(f => !f.startsWith('.')) : [];
+  const rawNotes = fs.existsSync(inputsNotes) ? fs.readdirSync(inputsNotes).filter(f => !f.startsWith('.')) : [];
+  if (rawDrafts.length > 0 || rawNotes.length > 0) {
+    console.log(`- \x1b[1mInputs Vault (inputs/)\x1b[0m: \x1b[32mActive\x1b[0m (${rawDrafts.length} raw draft(s), ${rawNotes.length} note(s))`);
+  }
+
+  if (!stageTarget) {
+    printManuscriptStatus();
+  } else {
+    console.log('');
+  }
+}
+
+const STATUS_COLORS = { planned: '\x1b[90m', drafted: '\x1b[33m', audited: '\x1b[36m', passed: '\x1b[32m', imported: '\x1b[35m' };
+
+function printManuscriptStatus() {
+  if (!fs.existsSync('manuscript.json')) {
+    console.log('\n\x1b[90mNo manuscript.json — Stage 02 creates the production ledger (see _config/templates/manuscript.template.json).\x1b[0m');
+    return;
+  }
+  let manifest;
+  try {
+    manifest = safeParseJson(readText('manuscript.json'), 'manuscript.json');
+  } catch (e) {
+    console.error(`\nCould not parse manuscript.json: ${e.message}`);
+    return;
+  }
+  const chapters = manifest.chapters || [];
+  printHeader(`Manuscript: ${manifest.title || 'untitled'} (${chapters.length} chapters)`);
+
+  let totalWords = 0;
+  chapters.forEach(ch => {
+    let words = 0;
+    const draft = (ch.draft_file || '').replace(/\//g, path.sep);
+    if (draft && fs.existsSync(draft)) {
+      const raw = readText(draft);
+      words = (raw.match(/[\w'’-]+/g) || []).length;
+    }
+    totalWords += words;
+    const color = STATUS_COLORS[ch.status] || '';
+    const audit = ch.last_audit ? `  audit:${ch.last_audit}` : '';
+    const wordStr = words ? `${words}${ch.target_words ? '/' + ch.target_words : ''}w` : '';
+    console.log(`  ch ${String(ch.id).padStart(2)}  ${color}${(ch.status || 'planned').padEnd(8)}\x1b[0m ${wordStr.padEnd(12)}${audit}  \x1b[90m${ch.title || ''}\x1b[0m`);
+  });
+
+  const target = manifest.target_words ? ` / ${manifest.target_words.toLocaleString()} target` : '';
+  console.log(`\n  Total: ${totalWords.toLocaleString()} words${target}`);
+
+  const next = chapters.find(ch => ch.status !== 'passed');
+  if (!next) {
+    console.log(`  \x1b[32mAll chapters passed — next action: Stage 05 compile (node scripts/${binName}.js compile)\x1b[0m`);
+  } else {
+    const action = {
+      planned: `draft it (Stage 03 — beats: ${next.beat_file || 'n/a'})`,
+      imported: `review or audit it (Stage 04 — node scripts/${binName}.js audit, or continue drafting)`,
+      drafted: `audit it (Stage 04 — node scripts/${binName}.js audit, then the rubric)`,
+      audited: `resolve findings and pass the Stage 04 gate`,
+    }[next.status] || 'check its status value';
+    console.log(`  Next action → chapter ${next.id}: ${action}`);
+  }
+
+  const health = assessModelHealth();
+  if (health.manuscriptPresent) {
+    console.log('\n' + formatModelHealthTerminal(health));
+  }
+}
+
+function handleBrief() {
+  printHeader('Soundingboard Project Brief & State Dump (ICM §5.2)');
+  const manifestPath = 'manuscript.json';
+  if (!fs.existsSync(manifestPath)) {
+    console.log('No manuscript.json found. Run Stage 01 onboarding or Stage 02 planning first.\n');
+    return;
+  }
+  let manifest;
+  try {
+    manifest = safeParseJson(readText(manifestPath), 'manuscript.json');
+  } catch (e) {
+    return;
+  }
+  const chapters = manifest.chapters || [];
+  const statusCounts = { planned: 0, drafted: 0, audited: 0, passed: 0, imported: 0 };
+  let totalWords = 0;
+  chapters.forEach(c => {
+    const st = c.status || 'planned';
+    statusCounts[st] = (statusCounts[st] || 0) + 1;
+    const draftPath = (c.draft_file || '').replace(/\//g, path.sep);
+    if (draftPath && fs.existsSync(draftPath)) {
+      const raw = readText(draftPath);
+      totalWords += (raw.match(/[\w'’-]+/g) || []).length;
+    }
+  });
+
+  console.log(`Title:           ${manifest.title || 'Untitled'}`);
+  console.log(`Author:          ${manifest.author || 'Author'}`);
+  console.log(`Form & Target:   ${manifest.form || 'novel'} (${manifest.target_words ? manifest.target_words.toLocaleString() + ' words' : 'no target words set'})`);
+  console.log(`Current Words:   ${totalWords.toLocaleString()} words (${manifest.target_words ? Math.round((totalWords / manifest.target_words) * 100) : 0}% of target)`);
+  console.log(`Chapters:        ${chapters.length} total [Passed: ${statusCounts.passed}, Audited: ${statusCounts.audited}, Drafted: ${statusCounts.drafted}, Imported: ${statusCounts.imported}, Planned: ${statusCounts.planned}]`);
+
+  const inputsDraftsDir = path.join('inputs', 'drafts');
+  const rawDraftsCount = fs.existsSync(inputsDraftsDir) ? fs.readdirSync(inputsDraftsDir).filter(f => !f.startsWith('.')).length : 0;
+  if (rawDraftsCount > 0) {
+    console.log(`Inputs Vault:    ${rawDraftsCount} raw draft snapshot(s) preserved in inputs/drafts/`);
+  }
+
+  // 1. Thread Ledger facts
+  const threadsPath = path.join('stages', '02_planning', 'output', 'trackers', 'threads.md');
+  if (fs.existsSync(threadsPath)) {
+    const threadContent = readText(threadsPath);
+    const activeThreads = [];
+    threadContent.split(/\r?\n/).forEach(l => {
+      if (l.trim().startsWith('|') && !l.includes('---') && !l.toLowerCase().includes('thread id')) {
+        const cells = l.split('|').map(c => c.trim()).filter(Boolean);
+        if (cells.length >= 6) {
+          activeThreads.push({ id: cells[0], desc: cells[1], status: cells[6] || 'open' });
+        }
+      }
+    });
+    const openThreads = activeThreads.filter(t => t.status.toLowerCase() === 'open');
+    console.log(`Active Threads:  ${openThreads.length} open (${activeThreads.length} total tracked)`);
+    if (openThreads.length > 0) {
+      console.log(`                 Open: ${openThreads.slice(0, 3).map(t => `${t.id} ("${t.desc.slice(0, 20)}")`).join(', ')}${openThreads.length > 3 ? '...' : ''}`);
+    }
+  } else {
+    console.log('Active Threads:  None (trackers/threads.md not initialized)');
+  }
+
+  // 2. Lore Debt facts
+  const lorePath = path.join('stages', '02_planning', 'output', 'trackers', 'lore_debt.md');
+  if (fs.existsSync(lorePath)) {
+    const loreContent = readText(lorePath);
+    const debts = (loreContent.match(/\|\s*\[[^\]]+\]\s*\|/g) || []).length;
+    console.log(`Lore Debt:       ${debts > 0 ? debts + ' open debt/question entries' : 'None open'}`);
+  }
+
+  // 3. Canon Integrity facts
+  const canonPath = path.join('stages', '02_planning', 'output', 'canon.md');
+  if (fs.existsSync(canonPath)) {
+    const canonContent = readText(canonPath);
+    const unverified = (canonContent.match(/\[unverified\s+ch\d+\]/gi) || []).length;
+    console.log(`Canon Facts:     ${unverified > 0 ? `\x1b[33m${unverified} unverified facts awaiting Stage 04 gate\x1b[0m` : '\x1b[32mAll established facts verified\x1b[0m'}`);
+  }
+
+  // 4. Quality & Audit facts
+  const failedAudits = chapters.filter(c => c.last_audit === 'FAIL');
+  const reviewAudits = chapters.filter(c => c.last_audit === 'REVIEW');
+  console.log(`Audit Status:    ${failedAudits.length > 0 ? `\x1b[31m${failedAudits.length} chapters failed audit (Ch ${failedAudits.map(c => c.id).join(', ')})\x1b[0m` : '\x1b[32m0 failed audit flags\x1b[0m'}${reviewAudits.length > 0 ? ` (${reviewAudits.length} in review)` : ''}`);
+
+  // 5. Soundingboard 2.0 Model Health
+  const health = assessModelHealth();
+  if (health.manuscriptPresent) {
+    const healthIcon = health.summary.status === 'HEALTHY' ? '\x1b[32m' : (health.summary.status === 'DEGRADED' ? '\x1b[31m' : '\x1b[33m');
+    console.log(`Model Health:    ${healthIcon}${health.summary.status}\x1b[0m — ${health.summary.message}`);
+    console.log(`                 Scenes: ${health.scenes.total} (${health.scenes.drafted} drafted, ${health.scenes.nullValueShifts.length} null shifts) | Rationales: ${health.chapters.total - health.chapters.missingRationale.length}/${health.chapters.total} authored`);
+  }
+
+  console.log('\n*ICM §5.2 State Brief: cold-start telemetry reports factual state without hardcoded next-action prescribing.*\n');
+}
+
+function getFilesRecursive(dir) {
+  let results = [];
+  if (!fs.existsSync(dir)) return results;
+  const list = fs.readdirSync(dir);
+  list.forEach(file => {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    if (stat && stat.isDirectory()) {
+      results = results.concat(getFilesRecursive(filePath));
+    } else {
+      results.push(filePath);
+    }
+  });
+  return results;
+}
+
+async function handleDiagnostic(subCmd, extraArgs = []) {
+  const diagMap = {
+    rhythm: 'prose_rhythm_diagnostic.js',
+    dialogue: 'dialogue_diagnostic.js',
+    tense: 'tense_slip_diagnostic.js',
+    sensory: 'sensory_anchor_diagnostic.js',
+    dread: 'dread_pacing_diagnostic.js',
+    lore: 'lore_density_diagnostic.js',
+    heatmap: 'character_heatmap_diagnostic.js',
+    resource: 'resource_consistency_diagnostic.js',
+    playbook: 'generate_curated_playbook.js',
+    audio: 'audio_cadence_diagnostic.js',
+  };
+
+  if (!subCmd || subCmd === 'list' || subCmd === '--help' || subCmd === 'help') {
+    printHeader('Soundingboard Diagnostics Suite');
+    console.log(`
+Available diagnostics:
+  node scripts/${binName}.js diag audit [path]         Full AI prose tell & rhythm scan
+  node scripts/${binName}.js diag audio [chapter]      Audiobook acoustic & breath cadence audit
+  node scripts/${binName}.js diag continuity [dir]     Proper noun & character continuity scan
+  node scripts/${binName}.js diag rhythm [chapter]     Sentence length standard deviation & cadence
+  node scripts/${binName}.js diag dialogue [chapter]   Speaker attribution & dialogue ratio
+  node scripts/${binName}.js diag tense [chapter]      Past vs. present tense consistency & slips
+  node scripts/${binName}.js diag sensory [chapter]    Sensory anchor density (visual/auditory/tactile)
+  node scripts/${binName}.js diag dread [chapter]      Dread pacing & sluggish suspense blocks
+  node scripts/${binName}.js diag lore [chapter]       Lore density & exposition info-dump scanner
+  node scripts/${binName}.js diag heatmap              Character presence & interaction matrix
+  node scripts/${binName}.js diag resource             Physical resource tracking
+  node scripts/${binName}.js diag playbook [chapter]   Generate curated revision playbook
+  node scripts/${binName}.js diag all [chapter]        Run all mechanical diagnostics sequentially
+    `);
+    return;
+  }
+
+  if (subCmd === 'audit') {
+    await handleAudit(extraArgs);
+    return;
+  }
+  if (subCmd === 'continuity') {
+    await handleContinuity(extraArgs);
+    return;
+  }
+
+  if (subCmd === 'all') {
+    printHeader('Running Full Diagnostic Suite');
+    console.log('\n--- 1. Narrative Prose Audit ---');
+    await handleAudit(extraArgs);
+    console.log('\n--- 2. Character & Proper-Noun Continuity ---');
+    await handleContinuity(extraArgs);
+
+    const sequence = ['rhythm', 'dialogue', 'tense', 'sensory', 'dread', 'lore'];
+    for (let i = 0; i < sequence.length; i++) {
+      const name = sequence[i];
+      console.log(`\n--- ${i + 3}. ${name.toUpperCase()} Diagnostic ---`);
+      const scriptFullPath = path.join(__dirname, diagMap[name]);
+      const child = fork(scriptFullPath, extraArgs);
+      await new Promise(res => child.on('close', res));
+    }
+    return;
+  }
+
+  const scriptFile = diagMap[subCmd];
+  if (!scriptFile) {
+    console.error(`Unknown diagnostic: "${subCmd}". Run "node scripts/${binName}.js diag" to see available tools.`);
+    return;
+  }
+
+  const scriptFullPath = path.join(__dirname, scriptFile);
+  const child = fork(scriptFullPath, extraArgs);
+  child.on('close', code => process.exit(code || 0));
+}
+
+function handleWizard(type, extraArgs = []) {
+  const wizardMap = {
+    onboard: 'onboard_wizard.js',
+    unstuck: 'unstuck_wizard.js',
+    brainstorm: 'brainstorm_wizard.js',
+    interview: 'interview_wizard.js',
+    heat: 'dialogue_heat_wizard.js',
+    bloom: 'sensory_bloom_wizard.js',
+    scene: 'stage_scene_wizard.js',
+    theme: 'theme_weaver_wizard.js',
+    'therefore-but': 'therefore_but_wizard.js',
+    wwxdu: 'wwxdu_wizard.js'
+  };
+
+  if (!type || type === 'list' || type === '--help' || type === 'help') {
+    printHeader('Soundingboard Creative Wizards');
+    console.log(`
+Available interactive wizards:
+  node scripts/${binName}.js wizard onboard [--blueprint=<name>]   Start novel onboarding session
+  node scripts/${binName}.js wizard unstuck                         Overcome writer's block (pacing, twists)
+  node scripts/${binName}.js wizard brainstorm                      Brainstorm premise & core tensions
+  node scripts/${binName}.js wizard interview                       Character deep-dive interrogation
+  node scripts/${binName}.js wizard heat                            Dialogue escalation & subtext intensifier
+  node scripts/${binName}.js wizard bloom                           Sensory expansion & setting viscosity
+  node scripts/${binName}.js wizard scene                           Scene staging & physical blocking
+  node scripts/${binName}.js wizard theme                           Theme weaver & subtle resonance
+  node scripts/${binName}.js wizard therefore-but                   Causal calculus ("Therefore / But" links)
+  node scripts/${binName}.js wizard wwxdu                           "What Would X Do Unexpectedly" subversion
+    `);
+    return;
+  }
+
+  const scriptFile = wizardMap[type];
+  if (!scriptFile) {
+    console.error(`Unknown wizard: "${type}". Run "node scripts/${binName}.js wizard" to see available wizards.`);
+    return;
+  }
+
+  const env = { ...process.env };
+  if (type === 'onboard') {
+    const blueprintArg = args.find(a => a.startsWith('--blueprint='));
+    if (blueprintArg) {
+      const name = blueprintArg.split('=')[1].replace(/-/g, '_');
+      const candidates = [
+        path.join('setup', `${name}.md`),
+        path.join('setup', `${name}_blueprint.md`),
+      ];
+      const resolved = candidates.find(c => fs.existsSync(c));
+      if (!resolved) {
+        console.error(`Blueprint not found. Tried: ${candidates.join(', ')}`);
+        process.exit(1);
+      }
+      env.SOUNDINGBOARD_BLUEPRINT = resolved;
+      env.SB_BLUEPRINT = resolved;
+      env.SAGA_BLUEPRINT = resolved;
+    }
+  }
+
+  const scriptFullPath = path.join(__dirname, scriptFile);
+  const wizardProcess = fork(scriptFullPath, extraArgs, { env });
+  wizardProcess.on('close', (code) => {
+    process.exit(code || 0);
+  });
+}
+
+function handlePack(type, extraArgs = []) {
+  const packMap = {
+    unstuck: 'pack-unstuck.js',
+    brainstorm: 'pack-brainstorm.js',
+    interview: 'pack-interview.js',
+    heat: 'pack-dialogue-heat.js',
+    'dialogue-heat': 'pack-dialogue-heat.js',
+    bloom: 'pack-sensory-bloom.js',
+    'sensory-bloom': 'pack-sensory-bloom.js',
+    scene: 'pack-stage-scene.js',
+    'pack-scene': 'pack-scene.js',
+    'stage-scene': 'pack-stage-scene.js',
+    bracket: 'pack-bracket.js',
+    'bracket-method': 'pack-bracket.js',
+    'pack-bracket': 'pack-bracket.js',
+    theme: 'pack-theme-weaver.js',
+    'theme-weaver': 'pack-theme-weaver.js',
+    causality: 'pack-causality.js',
+    'therefore-but': 'pack-causality.js',
+    wwxdu: 'pack-wwxdu.js',
+    'subplot-genesis': 'pack-subplot-genesis.js',
+    'subplot-braid': 'pack-subplot-braid.js',
+    'subplot-collision': 'pack-subplot-collision.js',
+    'subplot-resolution': 'pack-subplot-resolution.js',
+    dna: 'pack-character-dna.js',
+    'character-dna': 'pack-character-dna.js',
+    'blind-reader': 'pack-blind-reader.js',
+    reader: 'pack-blind-reader.js',
+    'plot-interrogator': 'pack-plot-interrogator.js',
+    interrogator: 'pack-plot-interrogator.js',
+    devil: 'pack-plot-interrogator.js',
+    debrief: 'pack-ingest-debrief.js',
+    'ingest-debrief': 'pack-ingest-debrief.js',
+    frontmatter: 'pack-frontmatter.js',
+    graduate: 'pack-frontmatter.js',
+    'lint-bracket': 'pack-bracket.js',
+    git: 'pack-git.js',
+    'git-history': 'pack-git.js',
+    naming: 'pack-naming.js',
+    'tactical-naming': 'pack-naming.js',
+    world: 'pack-world.js',
+    worldbuilding: 'pack-world.js',
+    wiki: 'pack-world.js',
+    setting: 'pack-world.js',
+    dig: 'pack-dig.js',
+    'socratic-dig': 'pack-dig.js'
+  };
+
+  if (!type || type === 'list' || type === '--help' || type === 'help') {
+    printHeader('Soundingboard Context Packers');
+    console.log(`
+Available context packers:
+  node scripts/${BIN_NAME}.js pack dig [target]                   Pack Socratic discovery context (Playbook #24)
+  node scripts/${BIN_NAME}.js pack git [base_ref]                 Pack Git status, creative diff, preferences & Playbook #21
+  node scripts/${BIN_NAME}.js pack naming [target]                Pack world onomastic rules, cast acoustic matrix & Playbook #22
+  node scripts/${BIN_NAME}.js pack world [topic]                  Pack world codex, political economy, taboos & Playbook #23
+  node scripts/${BIN_NAME}.js pack wiki [article]                 Pack context for encyclopedic codex articles
+  node scripts/${BIN_NAME}.js pack setting [location]             Pack location dossier & environmental resistance
+  node scripts/${BIN_NAME}.js pack unstuck [chapter]              Pack context for getting unstuck
+  node scripts/${BIN_NAME}.js pack brainstorm [topic]             Pack lore & worldbuilding context
+  node scripts/${BIN_NAME}.js pack interview <character>          Pack character voice context
+  node scripts/${BIN_NAME}.js pack heat [chapter] [chars...]      Pack dialogue tension context
+  node scripts/${BIN_NAME}.js pack bloom [location|ch]            Pack sensory & setting context
+  node scripts/${BIN_NAME}.js pack scene <chapter>                Pack scene staging context
+  node scripts/${BIN_NAME}.js pack theme [ch|theme]               Pack thematic resonance context
+  node scripts/${BIN_NAME}.js pack causality <chapter|file>       Pack beat pairs for causal audit
+  node scripts/${BIN_NAME}.js pack wwxdu <character>              Pack character scenario context
+  node scripts/${BIN_NAME}.js pack dna [character]                Pack character DNA & persona mashup context
+  node scripts/${BIN_NAME}.js pack subplot-genesis [theme]        Pack context for architecting subplots
+  node scripts/${BIN_NAME}.js pack subplot-braid <chapter>        Pack thread dormancy & scene braiding context
+  node scripts/${BIN_NAME}.js pack subplot-collision <chapter>    Pack mid-book turning point collision context
+  node scripts/${BIN_NAME}.js pack subplot-resolution [scope]     Pack resolution clumping & loose-end audit
+  node scripts/${BIN_NAME}.js pack blind-reader <chapter>         Pack cold-reading chapter text with zero hindsight
+  node scripts/${BIN_NAME}.js pack plot-interrogator <chapter>    Pack scene turning points & constraints for plot audit
+  node scripts/${BIN_NAME}.js pack debrief [chapter]              Pack context for developmental ingest debrief
+  node scripts/${BIN_NAME}.js pack frontmatter <file>             Pack draft prose & canon for frontmatter inference
+  node scripts/${BIN_NAME}.js pack graduate <draft_path>          Pack draft for collaborative scene graduation
+  node scripts/${BIN_NAME}.js pack lint-bracket <file|sc>         Pack draft prose for advisory linter bracket review
+    `);
+    return;
+  }
+
+  let scriptFile = packMap[type];
+  if (type === 'scene' && extraArgs[0] && /^sc-\d+/i.test(extraArgs[0])) {
+    scriptFile = 'pack-scene.js';
+  }
+  if (!scriptFile) {
+    console.error(`Unknown context packer: "${type}". Run "node scripts/${BIN_NAME}.js pack list" to see available packers.`);
+    return;
+  }
+
+  const scriptFullPath = path.join(__dirname, scriptFile);
+  const child = fork(scriptFullPath, extraArgs, { stdio: 'inherit' });
+  child.on('close', code => process.exit(code || 0));
+}
+
+async function handleAudit(customArgs) {
+  const { runAudit } = await import('./narrative_audit.js');
+  const auditArgs = customArgs !== undefined ? customArgs : args.slice(1);
+  runAudit(auditArgs);
+}
+
+async function handleChapterAudit(customArgs) {
+  const { runChapterAudit } = await import('./chapter_audit.js');
+  const chArgs = customArgs !== undefined ? customArgs : args.slice(1);
+  const target = chArgs.length > 0 ? chArgs[0] : null;
+  runChapterAudit(target);
+}
+
+async function handleCommandmentAudit(customArgs) {
+  const { runCommandmentAudit } = await import('./commandment_audit.js');
+  const cmdArgs = customArgs !== undefined ? customArgs : args.slice(1);
+  const target = cmdArgs.length > 0 ? cmdArgs[0] : null;
+  runCommandmentAudit(target);
+}
+
+
+async function handleContinuity(customArgs) {
+  const { runContinuityScan } = await import('./continuity_scan.js');
+  const contArgs = customArgs !== undefined ? customArgs : args.slice(1);
+  runContinuityScan(contArgs);
+}
+
+
+async function handleCanon(action, extraArgs = []) {
+  const { runCanonCheck, queryCanon, buildDecisionQueues } = await import('./canon.js');
+  const sceneArg = extraArgs.find(a => a.startsWith('--scene='));
+  const scene = sceneArg ? sceneArg.split('=')[1] : undefined;
+  const filteredArgs = extraArgs.filter(a => !a.startsWith('--scene=') && a !== '--strict' && a !== '--json');
+
+  if (action === 'query') {
+    const queryTerm = filteredArgs.join(' ').trim();
+    queryCanon(queryTerm, { scene });
+  } else if (action === 'check' || action === 'queues') {
+    runCanonCheck({
+      strict: extraArgs.includes('--strict'),
+      json: extraArgs.includes('--json')
+    });
+  } else {
+    console.log(`
+Soundingboard Cascading Canon Commands:
+  node scripts/${binName}.js canon query <entity> [--scene=sc-XXXX]    Query canon facts across Book, Series, and World tiers (with spoiler guard)
+  node scripts/${binName}.js canon check [--strict] [--json]          Audit all active tiers for unverified facts & broken provenance
+  node scripts/${binName}.js canon queues                             Inspect Orphaned, Unbound, and Absent decision queues
+    `);
+  }
+}
+
+function handlePromote(targetScope, extraArgs = []) {
+  printHeader('Soundingboard Workspace Scope Promotion Engine');
+
+  const allArgs = process.argv.slice(2) || [];
+  const toArg = allArgs.find(a => a.startsWith('--to='));
+  const scope = toArg ? toArg.split('=')[1].toLowerCase() : (targetScope || 'series').toLowerCase();
+
+  if (!['series', 'world'].includes(scope)) {
+    console.log('Usage: node scripts/soundingboard.js promote --to=series|world');
+    console.log('  --to=series : Upgrade a standalone novel into a multi-book series workspace');
+    console.log('  --to=world  : Upgrade a series into a multi-series universe workspace\n');
+    return;
+  }
+
+  const cwd = process.cwd();
+
+  // Pre-flight safety backup snapshot
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupDir = path.join(cwd, '.soundingboard', 'backups', `pre-promotion-${timestamp}`);
+  fs.mkdirSync(backupDir, { recursive: true });
+  console.log(`\x1b[36m[Snapshot]\x1b[0m Creating pre-promotion safety archive in .soundingboard/backups/...`);
+
+  const criticalPaths = [
+    'stages/01_onboarding/output/bible/world_bible.md',
+    'stages/01_onboarding/output/bible/genre_bible.md',
+    'stages/01_onboarding/output/preferences.json',
+    'stages/02_planning/output/canon.md',
+    'stages/02_planning/output/structure_plan.md',
+    'manuscript.json'
+  ];
+  criticalPaths.forEach(rel => {
+    const full = path.join(cwd, rel);
+    if (fs.existsSync(full)) {
+      const dest = path.join(backupDir, rel);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(full, dest);
+    }
+  });
+  console.log(`  ✔ Safety snapshot archived in: .soundingboard/backups/pre-promotion-${timestamp}\n`);
+
+  if (scope === 'series') {
+    // Mode A: Standalone Book -> Multi-Book Series
+    console.log(`\x1b[34m[Promotion]\x1b[0m Promoting project to Multi-Book Series layer...`);
+
+    const seriesDir = path.join(cwd, 'series');
+    const trackersDir = path.join(seriesDir, 'trackers');
+    fs.mkdirSync(trackersDir, { recursive: true });
+
+    // Seed Series ICM Semantic Contract
+    const seriesContextSrc = path.join(cwd, '_config', 'templates', 'series_context.template.md');
+    const seriesContextDest = path.join(seriesDir, 'CONTEXT.md');
+    if (fs.existsSync(seriesContextSrc) && !fs.existsSync(seriesContextDest)) {
+      fs.copyFileSync(seriesContextSrc, seriesContextDest);
+      console.log(`  ✔ Created Series ICM Contract: series/CONTEXT.md`);
+    }
+
+    // Elevate world/genre bible
+    const localWorldBible = path.join(cwd, 'stages', '01_onboarding', 'output', 'bible', 'world_bible.md');
+    const localGenreBible = path.join(cwd, 'stages', '01_onboarding', 'output', 'bible', 'genre_bible.md');
+    const seriesBibleDest = path.join(seriesDir, 'series_bible.md');
+    if (!fs.existsSync(seriesBibleDest)) {
+      if (fs.existsSync(localGenreBible)) {
+        fs.copyFileSync(localGenreBible, seriesBibleDest);
+      } else if (fs.existsSync(localWorldBible)) {
+        fs.copyFileSync(localWorldBible, seriesBibleDest);
+      }
+      console.log(`  ✔ Elevated series bible: series/series_bible.md`);
+    }
+
+    // Elevate canon to series_canon
+    const localCanon = path.join(cwd, 'stages', '02_planning', 'output', 'canon.md');
+    const seriesCanonDest = path.join(seriesDir, 'series_canon.md');
+    if (!fs.existsSync(seriesCanonDest) && fs.existsSync(localCanon)) {
+      fs.copyFileSync(localCanon, seriesCanonDest);
+      console.log(`  ✔ Seeded series canon: series/series_canon.md`);
+    }
+
+    // Update preferences.json
+    const prefFile = path.join(cwd, 'stages', '01_onboarding', 'output', 'preferences.json');
+    if (fs.existsSync(prefFile)) {
+      try {
+        const pref = JSON.parse(fs.readFileSync(prefFile, 'utf8'));
+        pref.form = 'series';
+        pref.series_dir = 'series';
+        fs.writeFileSync(prefFile, JSON.stringify(pref, null, 2), 'utf8');
+        console.log(`  ✔ Updated preferences.json (form: series)`);
+      } catch (e) {}
+    }
+
+    console.log(`\n\x1b[32m✔ Project successfully upgraded to Multi-Book Series (Tier 2)!\x1b[0m`);
+    console.log(`  • Shared series layer active at: series/`);
+    console.log(`  • Series ICM Contract governing at: series/CONTEXT.md`);
+    console.log(`  • Current manuscript remains active in: stages/`);
+    console.log(`  • Sibling books can now be initialized alongside this series.\n`);
+  } else if (scope === 'world') {
+    // Mode B: Series / Novel -> Multi-Series World Universe (Tier 3 - ICM)
+    console.log(`\x1b[34m[Promotion]\x1b[0m Promoting project to Multi-Series World Universe (Tier 3 - ICM)...`);
+
+    const worldDir = path.join(cwd, 'world');
+    const domains = ['cosmology', 'chronology', 'geography', 'cultures', 'economy', 'factions'];
+    domains.forEach(d => fs.mkdirSync(path.join(worldDir, d), { recursive: true }));
+
+    // Seed master ICM semantic contract
+    const worldContextSrc = path.join(cwd, '_config', 'templates', 'world_context.template.md');
+    const worldContextDest = path.join(worldDir, 'CONTEXT.md');
+    if (fs.existsSync(worldContextSrc) && !fs.existsSync(worldContextDest)) {
+      fs.copyFileSync(worldContextSrc, worldContextDest);
+      console.log(`  ✔ Seeded World Universe ICM Contract: world/CONTEXT.md`);
+    }
+
+    // Elevate world bible
+    const worldBibleDest = path.join(worldDir, 'world_bible.md');
+    const localBible = path.join(cwd, 'stages', '01_onboarding', 'output', 'bible', 'world_bible.md');
+    const seriesBible = path.join(cwd, 'series', 'series_bible.md');
+    if (!fs.existsSync(worldBibleDest)) {
+      if (fs.existsSync(seriesBible)) {
+        fs.copyFileSync(seriesBible, worldBibleDest);
+      } else if (fs.existsSync(localBible)) {
+        fs.copyFileSync(localBible, worldBibleDest);
+      } else {
+        const tpl = path.join(cwd, '_config', 'templates', 'world_bible.template.md');
+        if (fs.existsSync(tpl)) fs.copyFileSync(tpl, worldBibleDest);
+      }
+      console.log(`  ✔ Created universal world bible: world/world_bible.md`);
+    }
+
+    // Elevate world canon
+    const worldCanonDest = path.join(worldDir, 'world_canon.md');
+    const localCanon = path.join(cwd, 'stages', '02_planning', 'output', 'canon.md');
+    const seriesCanon = path.join(cwd, 'series', 'series_canon.md');
+    if (!fs.existsSync(worldCanonDest)) {
+      if (fs.existsSync(seriesCanon)) {
+        fs.copyFileSync(seriesCanon, worldCanonDest);
+      } else if (fs.existsSync(localCanon)) {
+        fs.copyFileSync(localCanon, worldCanonDest);
+      } else {
+        const tpl = path.join(cwd, '_config', 'templates', 'canon.template.md');
+        if (fs.existsSync(tpl)) fs.copyFileSync(tpl, worldCanonDest);
+      }
+      console.log(`  ✔ Created universal world canon: world/world_canon.md`);
+    }
+
+    // Seed domain starter templates
+    const domainTemplates = [
+      { src: 'naming_system.template.md', dest: path.join('geography', 'naming_system.md') },
+      { src: 'pantheon_religion.template.md', dest: path.join('cosmology', 'pantheon.md') },
+      { src: 'chronology_era.template.md', dest: path.join('chronology', 'eras.md') },
+      { src: 'cultural_codes.template.md', dest: path.join('cultures', 'cultural_codes.md') },
+      { src: 'political_economy.template.md', dest: path.join('economy', 'political_economy.md') },
+      { src: 'faction_matrix.template.md', dest: path.join('factions', 'faction_matrix.md') }
+    ];
+
+    domainTemplates.forEach(({ src, dest }) => {
+      const srcPath = path.join(cwd, '_config', 'templates', src);
+      const destPath = path.join(worldDir, dest);
+      if (fs.existsSync(srcPath) && !fs.existsSync(destPath)) {
+        fs.mkdirSync(path.dirname(destPath), { recursive: true });
+        fs.copyFileSync(srcPath, destPath);
+      }
+    });
+
+    const worldLoreDest = path.join(worldDir, 'tracker_world_lore_debt.md');
+    const localLore = path.join(cwd, 'stages', '02_planning', 'output', 'trackers', 'lore_debt.md');
+    if (!fs.existsSync(worldLoreDest) && fs.existsSync(localLore)) {
+      fs.copyFileSync(localLore, worldLoreDest);
+      console.log(`  ✔ Seeded world lore debts: world/tracker_world_lore_debt.md`);
+    }
+
+    const worldReadmeDest = path.join(worldDir, 'README.md');
+    if (!fs.existsSync(worldReadmeDest)) {
+      fs.writeFileSync(worldReadmeDest, `# Shared Universe & World Layer (Tier 3 - ICM)\n\nThis directory holds the immutable laws of nature, magic/tech systems, cosmological timeline, and global geography shared across all series and books in this universe under Interpretable Context Methodology (ICM).\n\nSee \`CONTEXT.md\` for category schemas and dynamic agent retrieval rules.\n`, 'utf8');
+    }
+
+    console.log(`\n\x1b[32m✔ Project successfully upgraded to Multi-Series World Universe (Tier 3 - ICM)!\x1b[0m`);
+    console.log(`  • Tier 3 World Layer active at: world/`);
+    console.log(`  • 6 ICM Domains ready: cosmology/, chronology/, geography/, cultures/, economy/, factions/`);
+    console.log(`  • World ICM Contract active at: world/CONTEXT.md`);
+    console.log(`  • Multiple series and books can now inherit these universal laws.\n`);
+  }
+}
+
+
+function handleTimeline() {
+  printHeader('Manuscript Story Chronology & Timeline');
+  const chaptersDir = path.join('stages', '03_drafting', 'output', 'chapters');
+  let files = [];
+  if (fs.existsSync(chaptersDir)) {
+    files = fs.readdirSync(chaptersDir)
+      .filter(f => /\.(md|txt|markdown)$/i.test(f))
+      .sort((a, b) => {
+        const numA = parseInt(a.replace(/\D/g, '') || '0', 10);
+        const numB = parseInt(b.replace(/\D/g, '') || '0', 10);
+        return numA - numB;
+      });
+  }
+
+  if (files.length === 0) {
+    console.log('No drafted chapters found to construct timeline.\n');
+    return;
+  }
+
+  const rows = [];
+  let missingTags = 0;
+
+  files.forEach(f => {
+    const raw = readText(path.join(chaptersDir, f));
+    const numMatch = f.match(/(\d+)/);
+    const chNum = numMatch ? parseInt(numMatch[1], 10) : 1;
+
+    let storyDate = null;
+    let elapsed = null;
+    let pov = 'Default POV';
+
+    const fmMatch = raw.replace(/^\uFEFF/, '').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (fmMatch) {
+      fmMatch[1].split(/\r?\n/).forEach(line => {
+        const colon = line.indexOf(':');
+        if (colon > 0) {
+          const key = line.slice(0, colon).trim().toLowerCase();
+          let val = line.slice(colon + 1).trim().replace(/^["']|["']$/g, '');
+          if (key === 'story_date' || key === 'date') storyDate = val;
+          if (key === 'elapsed') elapsed = val;
+          if (key === 'pov' || key === 'character') pov = val;
+        }
+      });
+    }
+
+    if (!storyDate && !elapsed) missingTags++;
+
+    rows.push({
+      chapter: chNum,
+      file: f,
+      storyDate: storyDate || '\x1b[33m[Missing]\x1b[0m',
+      elapsed: elapsed || '-',
+      pov
+    });
+  });
+
+  console.log('| Chapter | POV | Story Date / Anchor | Elapsed Time | Status |');
+  console.log('|---|---|---|---|---|');
+  rows.forEach(r => {
+    const status = r.storyDate.includes('Missing') ? '\x1b[33mNeeds Anchor\x1b[0m' : '\x1b[32mAnchored\x1b[0m';
+    console.log(`| Ch ${String(r.chapter).padStart(2, '0')} | ${r.pov} | ${r.storyDate} | ${r.elapsed} | ${status} |`);
+  });
+
+  console.log(`\nTotal Chapters: ${rows.length} | Missing Chrono Anchors: ${missingTags}`);
+  if (missingTags > 0) {
+    console.log('Tip: Add "story_date: YYYY-MM-DD" or "story_date: Day 1" to chapter frontmatter.\n');
+  } else {
+    console.log('\x1b[32m✔ Chronology is fully anchored across all drafted chapters.\x1b[0m\n');
+  }
+}
+
+async function handleThreads(extraArgs = []) {
+  if (extraArgs.includes('--view') || extraArgs.includes('--lanes') || extraArgs.includes('--html')) {
+    const { runThreadVisualizerCli } = await import('./thread_visualizer.js');
+    const thresholdArg = extraArgs.find(a => a.startsWith('--threshold='));
+    const threshold = thresholdArg ? parseInt(thresholdArg.split('=')[1], 10) : undefined;
+    return runThreadVisualizerCli({ threshold });
+  }
+
+  const { runThreadDiagnostics } = await import('./threads.js');
+  const thresholdArg = extraArgs.find(a => a.startsWith('--threshold='));
+  const threshold = thresholdArg ? parseInt(thresholdArg.split('=')[1], 10) : undefined;
+  const strict = extraArgs.includes('--strict');
+  const json = extraArgs.includes('--json');
+  return runThreadDiagnostics({ threshold, strict, json, isCli: true });
+}
+
+async function handleGateCmd(chId, extraArgs) {
+  const { handleGate } = await import('./gate.js');
+  handleGate(chId, extraArgs);
+}
+
+async function handleManuscriptReportCmd(extraArgs) {
+  const { runManuscriptReport } = await import('./manuscript_report.js');
+  runManuscriptReport(extraArgs);
+}
+
+
+async function handleImportCmd(sourceFile, extraArgs = []) {
+  const { importManuscript } = await import('./importer.js');
+  const options = {};
+  if (Array.isArray(extraArgs)) {
+    const chArg = extraArgs.find(a => a.startsWith('--target-chapter=') || a.startsWith('--chapter='));
+    if (chArg) options.targetChapter = chArg.split('=')[1];
+    const typeArg = extraArgs.find(a => a.startsWith('--type='));
+    if (typeArg) options.type = typeArg.split('=')[1];
+  }
+  importManuscript(sourceFile, options);
+}
+
+async function handleCompile(extraArgs) {
+  const { compileManuscript } = await import('./compile_manuscript.js');
+  compileManuscript(extraArgs !== undefined ? extraArgs : args.slice(1));
+}
+
+const PACKET_FILE_CAP = 48 * 1024;
+let totalPacketChars = 0;
+
+function emitPacketEntry(label, filePath) {
+  console.log(`\n--- ${label}: ${filePath} ---`);
+  const raw = readText(filePath);
+  totalPacketChars += raw.length;
+  if (raw.length > PACKET_FILE_CAP) {
+    console.log(raw.slice(0, PACKET_FILE_CAP));
+    console.log(`\n[TRUNCATED at ${PACKET_FILE_CAP} chars — read the file directly for the remainder: ${filePath}]`);
+  } else {
+    console.log(raw);
+  }
+}
+
+function handleRunStage(stageId) {
+  const matchingStage = STAGES.find(s => s.startsWith(stageId) || s === stageId);
+  if (!matchingStage) {
+    console.error(`Invalid stage ID: "${stageId}". Choose from: ${STAGES.join(', ')}`);
+    process.exit(1);
+  }
+
+  const stagePath = path.join('stages', matchingStage);
+  const contractPath = path.join(stagePath, 'CONTEXT.md');
+
+  if (!fs.existsSync(contractPath)) {
+    console.error(`Stage contract not found at: ${contractPath}`);
+    process.exit(1);
+  }
+
+  totalPacketChars = 0;
+  const contract = readText(contractPath);
+  console.log(`=== STAGE PACKET: ${matchingStage} ===`);
+  emitPacketEntry('CONTRACT', contractPath);
+
+  const contractMeta = parse(contract, contractPath);
+  const inputs = Array.isArray(contractMeta.inputs) ? contractMeta.inputs : [];
+  const templates = Array.isArray(contractMeta.templates) ? contractMeta.templates : [];
+  const missing = [];
+
+  for (const [label, group] of [['INPUT', inputs], ['TEMPLATE', templates]]) {
+    for (const item of group) {
+      const p = item.replace(/\//g, path.sep);
+      if (!fs.existsSync(p)) {
+        missing.push(item);
+        continue;
+      }
+      if (fs.statSync(p).isDirectory()) {
+        const files = getFilesRecursive(p).filter(f => /\.(md|txt|json|markdown)$/i.test(f));
+        if (files.length === 0) missing.push(`${item} (directory is empty)`);
+        files.forEach(f => emitPacketEntry(label, f));
+      } else {
+        emitPacketEntry(label, p);
+      }
+    }
+  }
+
+  // Stage 02 Genre-Conditional Trackers (ICM Layer 3 Template Routing)
+  if (matchingStage.startsWith('02')) {
+    let genre = null;
+    const prefPath = path.join('stages', '01_onboarding', 'output', 'preferences.json');
+    if (fs.existsSync(prefPath)) {
+      try {
+        const pref = JSON.parse(readText(prefPath));
+        genre = (pref.genre || pref.primary_genre || pref.subgenre || '').toLowerCase();
+      } catch (_) {}
+    }
+    const genreArg = (process.argv.slice(2) || []).find(a => a.startsWith('--genre='));
+    if (genreArg) {
+      genre = genreArg.split('=')[1].toLowerCase();
+    }
+
+    let form = 'novel';
+    if (fs.existsSync(prefPath)) {
+      try {
+        const pref = JSON.parse(readText(prefPath));
+        if (pref.form) form = pref.form.toLowerCase();
+      } catch (_) {}
+    }
+    const formArg = (process.argv.slice(2) || []).find(a => a.startsWith('--form='));
+    if (formArg) {
+      form = formArg.split('=')[1].toLowerCase();
+    }
+
+    const isShortForm = ['short_story', 'novelette'].includes(form);
+
+    if (isShortForm) {
+      console.log(`\n--- FORM ADAPTATION: ${form.toUpperCase()} ---`);
+      console.log(`Form-Based Architecture: Single beat structure (beats/main.md), living canon, and zero-subplot discipline.`);
+      console.log(`Novel continuity trackers omitted per _config/okf_craft/short_story_form_and_single_effect.md.\n`);
+    } else if (genre) {
+      let tracker = null;
+      if (genre.includes('romance') || genre.includes('romantasy')) {
+        tracker = path.join('_config', 'templates', 'tracker_romance_heat_ladder.template.md');
+      } else if (genre.includes('fantasy') || genre.includes('thriller') || genre.includes('progression') || genre.includes('multi-pov')) {
+        tracker = path.join('_config', 'templates', 'tracker_power_escalation.template.md');
+      } else if (genre.includes('mystery') || genre.includes('detective') || genre.includes('cozy') || genre.includes('noir')) {
+        tracker = path.join('_config', 'templates', 'tracker_fair_play_clues.template.md');
+      }
+      if (tracker && fs.existsSync(tracker)) {
+        emitPacketEntry('GENRE TEMPLATE', tracker);
+      }
+    }
+  }
+
+  const estTokens = Math.ceil(totalPacketChars / 4);
+  console.log(`\n=== END PACKET: ${matchingStage} (Est: ${estTokens.toLocaleString()} tokens / target: 2,000–8,000) ===`);
+  if (estTokens > 8000) {
+    console.log(`\x1b[33mWarning: Stage packet exceeds ICM recommended budget of 8,000 tokens (${estTokens.toLocaleString()} tokens).\x1b[0m`);
+  }
+  if (missing.length) {
+    console.log(`\nMissing inputs (produce these via the earlier stage, or proceed if the contract marks them optional):`);
+    missing.forEach(m => console.log(`  ✗ ${m}`));
+  }
+  console.log(`\nExecutor instructions: follow the CONTRACT's Process section. Write outputs to the exact paths its frontmatter declares, using the TEMPLATE structures where provided. Verify against the contract's Verification section before marking the stage complete.`);
+}
+
+function handlePackChapter(chId) {
+  if (!chId) {
+    console.error(`Error: Please specify a chapter number (e.g. node scripts/${BIN_NAME}.js pack-chapter 1)`);
+    process.exit(1);
+  }
+
+  const num = parseInt(chId, 10);
+  const padNum = String(num).padStart(2, '0');
+  printHeader(`Chapter ${num} Context Kit Packaging`);
+
+  let totalKitChars = 0;
+  const kitSections = [];
+  function emitKitSection(title, content) {
+    console.log(`--- ${title} ---`);
+    console.log(content.trim());
+    console.log('-------------------------------------------------------\n');
+    const sectionChars = content.length;
+    totalKitChars += sectionChars;
+    kitSections.push({ title, chars: sectionChars, tokens: Math.ceil(sectionChars / 4) });
+  }
+
+  let manifest = null;
+  let chEntry = null;
+  if (fs.existsSync('manuscript.json')) {
+    try {
+      manifest = JSON.parse(readText('manuscript.json'));
+      if (Array.isArray(manifest.chapters)) {
+        chEntry = manifest.chapters.find(c => c.id === num);
+      }
+    } catch (e) {
+      console.warn(`Could not read manuscript.json: ${e.message}`);
+    }
+  }
+
+  // Extract explicit entities from manuscript.json
+  const explicitEntities = new Set();
+  if (chEntry && chEntry.entities) {
+    const list = Array.isArray(chEntry.entities) ? chEntry.entities : String(chEntry.entities).split(',');
+    list.forEach(e => {
+      const clean = e.replace(/[\[\]]/g, '').trim().toLowerCase();
+      if (clean) explicitEntities.add(clean);
+    });
+  }
+
+  // 1. Resolve Beat file from manuscript.json or conventions
+  let beatFile = null;
+  if (chEntry && chEntry.beat_file && fs.existsSync(chEntry.beat_file.replace(/\//g, path.sep))) {
+    beatFile = chEntry.beat_file.replace(/\//g, path.sep);
+  } else {
+    const candidates = [
+      path.join('stages', '02_planning', 'output', 'beats', `ch${padNum}.md`),
+      path.join('stages', '02_planning', 'output', 'beats', `ch${num}.md`),
+      path.join('stages', '02_planning', 'output', 'beats', `chapter_${padNum}_beats.md`),
+      path.join('stages', '02_planning', 'output', 'beats', `chapter_${num}_beats.md`)
+    ];
+    beatFile = candidates.find(c => fs.existsSync(c));
+  }
+
+  let beatText = '';
+  if (!beatFile) {
+    console.log(`\x1b[33mWarning: Beat file for Chapter ${num} not found.\x1b[0m`);
+  } else {
+    console.log(`\x1b[32m✔ Loaded Beats: ${beatFile}\x1b[0m\n`);
+    beatText = readText(beatFile);
+    emitKitSection('CHAPTER BEATS', beatText);
+
+    // Extract entities from beat frontmatter and markdown links
+    const fmMatch = beatText.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (fmMatch) {
+      const inline = fmMatch[1].match(/^entities:\s*\[(.*?)\]/m);
+      if (inline) {
+        inline[1].split(',').map(s => s.trim().replace(/^["']|["']$/g, '').replace(/[\[\]]/g, '')).forEach(e => {
+          if (e) explicitEntities.add(e.toLowerCase());
+        });
+      } else {
+        const lines = fmMatch[1].split(/\r?\n/);
+        let inEnt = false;
+        for (const l of lines) {
+          if (/^entities:\s*$/.test(l)) { inEnt = true; continue; }
+          if (inEnt) {
+            const m = l.match(/^\s+-\s+["']?([^"'\r\n#]+)["']?/);
+            if (m) explicitEntities.add(m[1].replace(/[\[\]]/g, '').trim().toLowerCase());
+            else if (/^\S/.test(l)) inEnt = false;
+          }
+        }
+      }
+    }
+
+    const linkMatches = [...beatText.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)];
+    if (linkMatches.length > 0) {
+      let entitySection = '';
+      linkMatches.forEach(match => {
+        const rawName = match[1].replace(/[\[\]]/g, '').trim();
+        if (rawName) explicitEntities.add(rawName.toLowerCase());
+        const linkPath = match[2].replace(/\//g, path.sep);
+        const resolved = path.resolve(path.dirname(beatFile), linkPath);
+        if (fs.existsSync(resolved)) {
+          entitySection += `\n### Entity: ${match[1]} (${linkPath})\n` + readText(resolved).trim() + '\n';
+        }
+      });
+      if (entitySection) {
+        emitKitSection('RESOLVED ENTITY CONTEXT NODES', entitySection);
+      }
+    }
+  }
+
+  // 2. Mandatory Canon Facts (Layer 4) with Selective Entity Inlining & Graceful Fallback
+  const canonFile = path.join('stages', '02_planning', 'output', 'canon.md');
+  if (fs.existsSync(canonFile)) {
+    const fullCanon = readText(canonFile);
+    const canonLines = fullCanon.split(/\r?\n/);
+
+    let currentSection = '';
+    const globalRows = [];
+    const entityRows = [];
+    let tableHeader = '| Entity | Attribute | Value | First Asserted | Status |';
+
+    canonLines.forEach((l, idx) => {
+      const hMatch = l.match(/^#{1,3}\s+(.*)$/);
+      if (hMatch) {
+        currentSection = hMatch[1].trim();
+        return;
+      }
+      if (l.trim().startsWith('|') && !l.includes('---')) {
+        const cells = l.split('|').map(c => c.trim()).filter(Boolean);
+        if (cells.length >= 3) {
+          const firstCell = cells[0].toLowerCase();
+          if (firstCell === 'entity' || firstCell === 'character' || firstCell === '[entity]' || firstCell === '[character]') {
+            tableHeader = l;
+            return;
+          }
+          const rawEntity = cells[0];
+          const cleanEntity = rawEntity.replace(/[\[\]]/g, '').trim();
+          const cleanEntityLower = cleanEntity.toLowerCase();
+
+          // Check for global scope:
+          // 1. Any cell contains "global" or "[global]" or "scope: global"
+          // 2. Section header indicates world rules, mechanics, numbers, quantities, magic, system, laws, setting
+          // 3. Entity is named "world", "rule", "rules", "magic", "setting", "system", "laws", "cosmology"
+          const isGlobalSection = /world|rule|mechanic|number|quantit|system|magic|setting|cosmolog|law/i.test(currentSection);
+          const hasGlobalCell = cells.some(c => /\b(scope:\s*global|\[global\]|^global$)\b/i.test(c));
+          const isGlobalEntity = /^(world|magic|rule|rules|system|mechanics|setting|laws|cosmology)$/i.test(cleanEntityLower);
+
+          const isGlobal = hasGlobalCell || isGlobalSection || isGlobalEntity;
+          const rowObj = {
+            raw: l,
+            entity: cleanEntity,
+            entityLower: cleanEntityLower,
+            section: currentSection,
+            firstAsserted: cells[3] || '',
+            index: idx,
+            isGlobal
+          };
+
+          if (isGlobal) {
+            globalRows.push(rowObj);
+          } else {
+            entityRows.push(rowObj);
+          }
+        }
+      }
+    });
+
+    const totalRows = globalRows.length + entityRows.length;
+
+    if (totalRows <= 15) {
+      // Small canon: Safe to inline completely
+      emitKitSection('ESTABLISHED CANON (Mandatory Facts)', fullCanon);
+    } else {
+      // Large canon: Filter deterministically or degrade gracefully
+      let matchedRows = [];
+      if (explicitEntities.size > 0) {
+        matchedRows = entityRows.filter(r => {
+          for (const ent of explicitEntities) {
+            if (r.entityLower === ent || r.entityLower.includes(ent) || ent.includes(r.entityLower)) {
+              return true;
+            }
+          }
+          return false;
+        });
+      } else if (beatText.length > 0) {
+        matchedRows = entityRows.filter(r => {
+          const escaped = r.entityLower.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+          return new RegExp(`\\b${escaped}\\b`, 'i').test(beatText);
+        });
+      }
+
+      if (matchedRows.length > 0) {
+        // Filtered relevance path
+        const MAX_ENTITY_ROWS = 25;
+        const includedEntityRows = matchedRows.slice(0, MAX_ENTITY_ROWS);
+        const withheldCount = entityRows.length - includedEntityRows.length;
+
+        let content = '# Established Canon (Selective Entity Filtering)\n\n';
+        content += `*Selective inlining for Ch ${num}: showing ${includedEntityRows.length} relevant entity facts out of ${entityRows.length} tracked entity facts.*\n\n`;
+        content += tableHeader + '\n|---|---|---|---|---|\n';
+        content += includedEntityRows.map(r => r.raw).join('\n') + '\n\n';
+
+        if (globalRows.length > 0) {
+          content += '## Universal World Rules & Numbers (Always Active)\n';
+          content += tableHeader + '\n|---|---|---|---|---|\n';
+          content += globalRows.map(r => r.raw).join('\n') + '\n\n';
+        }
+
+        if (withheldCount > 0) {
+          content += `*Note: ${withheldCount} entity facts withheld to maintain ICM drafting kit budget (<6,000 tokens). Query specific facts on demand with: node scripts/${BIN_NAME}.js canon query <entity>*\n`;
+        }
+
+        emitKitSection('ESTABLISHED CANON (Filtered Relevance)', content);
+      } else {
+        // Degraded relevance fallback path
+        const MAX_RECENT_ENTITY_ROWS = 15;
+        const recentRows = entityRows.slice(-MAX_RECENT_ENTITY_ROWS);
+        const withheldCount = entityRows.length - recentRows.length;
+
+        let content = '# Established Canon (Degraded Relevance — Unlinked Chapter)\n\n';
+        content += `*Chapter ${num} has no explicit entity linkage. Showing all global world rules plus the ${recentRows.length} most recent canon facts.*\n\n`;
+
+        if (globalRows.length > 0) {
+          content += '## Universal World Rules & Numbers (Always Active)\n';
+          content += tableHeader + '\n|---|---|---|---|---|\n';
+          content += globalRows.map(r => r.raw).join('\n') + '\n\n';
+        }
+
+        if (recentRows.length > 0) {
+          content += '## Most Recent Established Facts\n';
+          content += tableHeader + '\n|---|---|---|---|---|\n';
+          content += recentRows.map(r => r.raw).join('\n') + '\n\n';
+        }
+
+        content += `*Note: Chapter ${num} has no explicit entity linkage. Showing all global world rules plus the ${recentRows.length} most recent canon facts. ${withheldCount} entity facts withheld to maintain ICM drafting kit budget (<6,000 tokens). Query specific facts on demand with: node scripts/${BIN_NAME}.js canon query <entity>*\n`;
+
+        emitKitSection('ESTABLISHED CANON (Degraded Relevance)', content);
+      }
+    }
+  }
+
+  // 3. Structure Plan rows for this chapter
+  const structPlanFile = path.join('stages', '02_planning', 'output', 'structure_plan.md');
+  if (fs.existsSync(structPlanFile)) {
+    const spContent = readText(structPlanFile);
+    const spLines = spContent.split(/\r?\n/);
+    const relevantLines = spLines.filter(line => {
+      const match = line.match(/\|\s*(\d+)\s*\|/);
+      return match && parseInt(match[1], 10) === num;
+    });
+    if (relevantLines.length > 0) {
+      emitKitSection(`STRUCTURE PLAN CONTEXT (Ch ${num})`, relevantLines.join('\n'));
+    }
+  }
+
+  // 4. Character Arc Beats for this chapter
+  const arcsFile = path.join('stages', '02_planning', 'output', 'character_arcs.md');
+  if (fs.existsSync(arcsFile)) {
+    const arcsContent = readText(arcsFile);
+    const arcLines = arcsContent.split(/\r?\n/);
+    const chArcLines = arcLines.filter(line => new RegExp(`\\b(?:Ch|Chapter)\\s*0?${num}\\b`, 'i').test(line));
+    if (chArcLines.length > 0) {
+      emitKitSection(`SCHEDULED CHARACTER ARC BEATS (Ch ${num})`, chArcLines.join('\n'));
+    }
+  }
+
+  // 5. Voice Exemplars (Layer 4 vs Layer 3 Fix)
+  const exemplarsFile = path.join('stages', '02_planning', 'output', 'voice_exemplars.md');
+  if (fs.existsSync(exemplarsFile)) {
+    emitKitSection('VOICE EXEMPLARS (Layer 4 Anti-Drift Target)', readText(exemplarsFile));
+  } else {
+    const voiceFile = path.join('_config', 'voice.md');
+    if (fs.existsSync(voiceFile)) {
+      emitKitSection('DEFAULT VOICE GUIDE (Layer 3 Baseline)', readText(voiceFile));
+    }
+  }
+
+  // 6. Anti-drift calibration: Trailing ~500 words of previous chapter (clean without frontmatter)
+  if (num > 1) {
+    const prevNum = num - 1;
+    const prevPad = String(prevNum).padStart(2, '0');
+    let prevDraft = null;
+    if (manifest && Array.isArray(manifest.chapters)) {
+      const prevEntry = manifest.chapters.find(c => c.id === prevNum);
+      if (prevEntry && prevEntry.draft_file && fs.existsSync(prevEntry.draft_file.replace(/\//g, path.sep))) {
+        prevDraft = prevEntry.draft_file.replace(/\//g, path.sep);
+      }
+    }
+    if (!prevDraft) {
+      const candidates = [
+        path.join('stages', '03_drafting', 'output', 'chapters', `ch${prevPad}.md`),
+        path.join('stages', '03_drafting', 'output', 'chapters', `ch${prevNum}.md`),
+        path.join('stages', '03_drafting', 'output', 'chapters', `chapter_${prevPad}.md`),
+        path.join('stages', '03_drafting', 'output', 'chapters', `chapter_${prevNum}.md`)
+      ];
+      prevDraft = candidates.find(p => fs.existsSync(p));
+    }
+
+    if (prevDraft) {
+      let raw = readText(prevDraft);
+      raw = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+      const paras = raw.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+      let tailWords = [];
+      for (let i = paras.length - 1; i >= 0; i--) {
+        const words = paras[i].split(/\s+/);
+        tailWords.unshift(...words);
+        if (tailWords.length >= 500) break;
+      }
+      const anchor = tailWords.slice(-500).join(' ');
+      emitKitSection(`PREVIOUS CHAPTER TRAILING ANCHOR (Ch ${prevNum})`, anchor);
+    }
+  }
+
+  const estTokens = Math.ceil(totalKitChars / 4);
+  console.log(`\x1b[32m✔ Context kit compiled successfully. Ready for Stage 03 drafting.\x1b[0m`);
+  console.log(`\x1b[1m[ICM Kit Budget: ~${estTokens.toLocaleString()} tokens / 6,000 target]\x1b[0m\n`);
+  if (estTokens > 6000) {
+    kitSections.sort((a, b) => b.tokens - a.tokens);
+    const top = kitSections[0] || { title: 'Unknown', tokens: 0 };
+    console.log(`\x1b[33mWarning: Chapter kit exceeds target 6,000 tokens (${estTokens.toLocaleString()} tokens). Overrun caused primarily by: "${top.title}" (~${top.tokens.toLocaleString()} tokens).\x1b[0m\n`);
+    if (process.argv.includes('--strict')) {
+      console.error(`\x1b[31mError: Chapter kit exceeds maximum allowed budget under --strict mode (${estTokens.toLocaleString()} > 6,000 tokens).\x1b[0m\n`);
+      process.exit(1);
+    }
+  }
+}
+
+function handleOkfIndex() {
+  printHeader('Rebuilding OKF Catalogs');
+  const craftDir = path.join('_config', 'okf_craft');
+  if (fs.existsSync(craftDir)) {
+    const files = fs.readdirSync(craftDir)
+      .filter(f => f.endsWith('.md') && f !== 'index.md' && f !== 'CONTEXT.md')
+      .sort();
+    let lastIndexed = new Date().toISOString().split('T')[0];
+    const indexPath = path.join(craftDir, 'index.md');
+    if (fs.existsSync(indexPath)) {
+      const existing = readText(indexPath);
+      const dateMatch = existing.match(/last_indexed:\s*(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch) {
+        lastIndexed = dateMatch[1];
+      }
+    }
+    let indexContent = `---\ntype: okf_index\ntitle: "Static Narrative Craft OKF Catalog"\nlast_indexed: ${lastIndexed}\n---\n\n# ${APP_NAME} Static Craft Knowledge Catalog\n\n`;
+    
+    files.forEach(f => {
+      const fullPath = path.join(craftDir, f);
+      const content = readText(fullPath);
+      let title = f;
+      const titleQuotedMatch = content.match(/title:\s*"([^"\r\n]+)"/) || content.match(/title:\s*'([^'\r\n]+)'/) || content.match(/title:\s*([^\r\n]+)/);
+      if (titleQuotedMatch) {
+        title = titleQuotedMatch[1].trim();
+      }
+      const typeMatch = content.match(/type:\s*([^\r\n]+)/);
+      const type = typeMatch ? typeMatch[1].trim() : 'uncategorized';
+      indexContent += `- [${title}](${f}) — \`type: ${type}\`\n`;
+    });
+
+    fs.writeFileSync(path.join(craftDir, 'index.md'), indexContent, 'utf8');
+    console.log(`  ✔ Rebuilt static craft index at ${path.join(craftDir, 'index.md')}`);
+  }
+}
+
+async function handleOkfLint() {
+  const { runOkfLint } = await import('./okf_lint.js');
+  const result = runOkfLint({ rootDir: process.cwd(), strict: args.includes('--strict') });
+  if (!result.ok) {
+    process.exit(1);
+  }
+}
+
+const CRAFT_SYNONYMS = {
+  'sagging middle': ['murch_rule_of_six_pacing', 'thriller_escalation_pacing', 'story_grid_macro'],
+  'slow pacing': ['thriller_escalation_pacing', 'swain_mru_and_pacing_velocity_equations'],
+  'flat dialogue': ['three_registers_of_dialogue_subtext', 'voice_differentiation_across_ensemble'],
+  'exposition': ['primitive_epistemic_asymmetry', 'lore_density_diagnostic'],
+  'middle book': ['series_architecture_and_cross_book_arcs'],
+  'short story': ['short_story_form_and_single_effect'],
+  'novella': ['novella_form_and_compressed_turn'],
+  'cliffhanger': ['chapter_architecture_and_ending_hooks', 'hitchcock_bomb_suspense'],
+};
+
+function loadSynonyms(rootDir) {
+  const synPath = path.join(rootDir, '_config', 'okf_craft', 'synonyms.md');
+  const map = { ...CRAFT_SYNONYMS };
+  if (!fs.existsSync(synPath)) return map;
+  const content = fs.readFileSync(synPath, 'utf8');
+  const lines = content.split(/\r?\n/);
+  for (const line of lines) {
+    if (!line.startsWith('|') || line.includes('Author Symptom')) continue;
+    const parts = line.split('|').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      const phrase = parts[0].toLowerCase();
+      const targets = parts[1].replace(/[`\s]/g, '').split(',').map(t => t.replace(/\.md$/, ''));
+      map[phrase] = targets;
+    }
+  }
+  return map;
+}
+
+function parseYamlListFromContent(text, key) {
+  const m = text.match(new RegExp(`^${key}:\\s*\\[([^\\]]*)\\]`, 'm'));
+  if (m) {
+    return m[1].split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+  }
+  const lines = text.split(/\r?\n/);
+  let inKey = false;
+  const items = [];
+  for (const line of lines) {
+    if (new RegExp(`^${key}:\\s*$`).test(line)) {
+      inKey = true;
+      continue;
+    }
+    if (inKey) {
+      const itemMatch = line.match(/^\s+-\s+["']?([^"'\\r\\n#]+)["']?/);
+      if (itemMatch) {
+        items.push(itemMatch[1].trim());
+      } else if (/^\S/.test(line)) {
+        inKey = false;
+      }
+    }
+  }
+  return items;
+}
+
+function handleCraftSearch(searchArgs) {
+  const isJson = searchArgs.includes('--json');
+  const stageFlag = (searchArgs.find(a => a.startsWith('--stage=')) || '').replace('--stage=', '').trim();
+  const genreFlag = (searchArgs.find(a => a.startsWith('--genre=')) || '').replace('--genre=', '').trim().toLowerCase();
+  const scopeFlag = (searchArgs.find(a => a.startsWith('--scope=')) || '').replace('--scope=', '').trim();
+
+  const terms = searchArgs.filter(a => !a.startsWith('--') && a !== 'search');
+  const query = terms.join(' ').trim();
+  
+  if (!query && !stageFlag && !genreFlag && !scopeFlag) {
+    console.log(`\x1b[33mUsage: node scripts/${binName}.js craft search <query> [--stage=<id>] [--genre=<name>] [--scope=<level>] [--json]\x1b[0m`);
+    return;
+  }
+  
+  const craftDir = path.join('_config', 'okf_craft');
+  if (!fs.existsSync(craftDir)) {
+    console.error(`Craft directory not found at ${craftDir}`);
+    return;
+  }
+  
+  const files = fs.readdirSync(craftDir).filter(f => f.endsWith('.md') && !['index.md', 'CONTEXT.md', 'SPECIFICATION.md', 'synonyms.md'].includes(f));
+  const queryLower = query.toLowerCase();
+  const queryWords = queryLower.split(/\s+/).filter(w => w.length > 1);
+  const synonyms = loadSynonyms(process.cwd());
+  const results = [];
+  
+  files.forEach(f => {
+    const fullPath = path.join(craftDir, f);
+    const content = readText(fullPath);
+    const titleMatch = content.match(/title:\s*"([^"\r\n]+)"/) || content.match(/title:\s*'([^'\r\n]+)'/) || content.match(/title:\s*([^\r\n]+)/);
+    const title = titleMatch ? titleMatch[1].trim() : f;
+    const typeMatch = content.match(/type:\s*([^\r\n]+)/);
+    const type = typeMatch ? typeMatch[1].trim() : 'uncategorized';
+    const scopeMatch = content.match(/scope:\s*([^"\r\n]+)/);
+    const scope = scopeMatch ? scopeMatch[1].trim() : '';
+
+    const stages = parseYamlListFromContent(content, 'stages');
+    const genres = parseYamlListFromContent(content, 'genres');
+    const keywordsList = parseYamlListFromContent(content, 'keywords');
+    const keywords = keywordsList.join(' ').toLowerCase();
+    
+    // Apply CLI flag filters
+    if (stageFlag && !stages.includes(stageFlag)) return;
+    if (genreFlag && genres.length > 0 && !genres.some(g => g.toLowerCase().includes(genreFlag))) return;
+    const normScope = (s) => (s === 'book' ? 'manuscript' : s);
+    if (scopeFlag && normScope(scope) !== normScope(scopeFlag)) return;
+
+    let score = 0;
+    const lowerTitle = title.toLowerCase();
+    const lowerContent = content.toLowerCase();
+    const baseName = f.replace(/\.md$/, '').toLowerCase();
+    
+    if (queryLower) {
+      // Whole phrase matches
+      if (lowerTitle.includes(queryLower)) score += 30;
+      if (baseName.includes(queryLower.replace(/\s+/g, '_'))) score += 25;
+      if (keywords.includes(queryLower)) score += 35;
+      if (lowerContent.includes(queryLower)) score += 10;
+      
+      // Synonym mappings lookup
+      for (const [synonym, targets] of Object.entries(synonyms)) {
+        if ((queryLower.includes(synonym) || synonym.includes(queryLower)) && targets.some(t => baseName.includes(t))) {
+          score += 40;
+        }
+      }
+
+      // Word-level weighted scoring: keywords 3x, title 2x, id 2x, body 1x
+      queryWords.forEach(w => {
+        if (keywords.includes(w)) score += 36;
+        if (lowerTitle.includes(w)) score += 24;
+        if (baseName.includes(w)) score += 20;
+        const bodyCount = (lowerContent.match(new RegExp(`\\b${w}`, 'gi')) || []).length;
+        score += Math.min(bodyCount, 10);
+      });
+    } else {
+      score = 10;
+    }
+    
+    if (score > 0) {
+      const lines = content.split('\n');
+      let summary = '';
+      for (const line of lines) {
+        if (line.trim().startsWith('# ') || line.trim().startsWith('---') || line.trim().length === 0) continue;
+        if (!line.includes(':') && line.length > 20) {
+          summary = line.trim();
+          break;
+        }
+      }
+      results.push({
+        file: f,
+        path: path.join(craftDir, f).replace(/\\/g, '/'),
+        title,
+        type,
+        scope,
+        stages,
+        genres,
+        score,
+        summary: summary.slice(0, 160) + (summary.length > 160 ? '...' : '')
+      });
+    }
+  });
+  
+  results.sort((a, b) => b.score - a.score);
+  const topResults = results.slice(0, 8);
+  
+  if (isJson) {
+    console.log(JSON.stringify(topResults, null, 2));
+    return;
+  }
+  
+  const filterDesc = [
+    stageFlag ? `stage=${stageFlag}` : null,
+    genreFlag ? `genre=${genreFlag}` : null,
+    scopeFlag ? `scope=${scopeFlag}` : null,
+  ].filter(Boolean).join(', ');
+
+  const titleHeader = query 
+    ? `${APP_NAME} Craft Search: "${query}"${filterDesc ? ` [${filterDesc}]` : ''} (${results.length} matches)`
+    : `${APP_NAME} Craft Search [${filterDesc}] (${results.length} matches)`;
+
+  printHeader(titleHeader);
+
+  if (topResults.length === 0) {
+    console.log(`  No matching craft modules found for "${query}".\n`);
+    console.log(`  \x1b[1m\x1b[36mRecommended Starting Points from Layer 3 Router (_config/okf_craft/CONTEXT.md):\x1b[0m`);
+    console.log(`  • Macro Planning:      story_grid_macro.md, four_corner_opposition_and_foil_matrix.md`);
+    console.log(`  • Scene & Beats:       scene_level_five_commandments_coyne.md, cpocl_plan_threat_conflict_engine.md`);
+    console.log(`  • Pacing & Rhythm:     murch_rule_of_six_pacing.md, thriller_escalation_pacing.md`);
+    console.log(`  • Dialogue & Subtext:  three_registers_of_dialogue_subtext.md, subtext_and_implied_meaning.md`);
+    console.log(`  • Diagnostics & Slop:  adversarial_prose_auditing_and_slop_filtering.md, anti_tell_suppression.md\n`);
+    console.log(`  \x1b[90mTip: Consult _config/okf_craft/synonyms.md for full author symptom search index.\x1b[0m\n`);
+    return;
+  }
+  
+  topResults.forEach((r, idx) => {
+    console.log(`  \x1b[36m${idx + 1}. [${r.title}]\x1b[0m (${r.type} | ${r.scope || 'universal'})`);
+    console.log(`     \x1b[90mPath: ${r.path}\x1b[0m`);
+    if (r.summary) {
+      console.log(`     \x1b[37m${r.summary}\x1b[0m`);
+    }
+    console.log('');
+  });
+}
+
+async function handleVisualizer(type, extraArgs = []) {
+  printHeader('State Road AI Story Console Visualizer');
+  const target = (type || 'all').toLowerCase();
+
+  if (target === 'ekg' || target === 'pacing' || target === 'all') {
+    const { generatePacingEkgHtml } = await import('./visualizer_ekg.js');
+    const ekgPath = generatePacingEkgHtml();
+    console.log(`  📊 Narrative EKG & Pacing Dashboard: ${ekgPath}`);
+  }
+
+  if (target === 'network' || target === 'cast' || target === 'all') {
+    const { generateNetworkHtml } = await import('./visualizer_network.js');
+    const netPath = generateNetworkHtml();
+    console.log(`  🕸️ Character & Faction Network Canvas: ${netPath}`);
+  }
+
+  console.log('\n\x1b[32m✔ State Road AI Story Console successfully generated! Open the HTML files in your browser to explore.\x1b[0m\n');
+}
+
+async function handleGit(subCmd, extraArgs = []) {
+  const {
+    getGitStatus,
+    analyzeCreativeChanges,
+    formatCreativeSummary,
+    verifyTechnicalIntegrity,
+    createCheckpointCommit,
+    getPushSummary,
+    compareExperiments,
+    runGit
+  } = await import('./git_history.js');
+
+  const action = (subCmd || 'status').toLowerCase();
+
+  if (action === 'status' || action === 'summary') {
+    printHeader('Soundingboard Creative History');
+    const analysis = analyzeCreativeChanges(process.cwd());
+    console.log(formatCreativeSummary(analysis));
+    return;
+  }
+
+  if (action === 'verify' || action === 'check') {
+    printHeader('Technical Integrity Pre-Commit Check');
+    const integrity = verifyTechnicalIntegrity(process.cwd());
+    if (integrity.valid) {
+      console.log('  \x1b[32m✔ Technical Integrity Passed:\x1b[0m All scene frontmatters, chapter playlists, and scene IDs are structurally sound.');
+    } else {
+      console.error(`  \x1b[31m✗ Technical Integrity Failure (${integrity.errors.length} error(s)):\x1b[0m`);
+      integrity.errors.forEach(e => console.error(`    - ${e}`));
+      console.error('\n  \x1b[33m↳ Fix these structural syntax/reference errors before committing.\x1b[0m\n');
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (action === 'checkpoint' || action === 'commit') {
+    printHeader('Creating Creative Checkpoint');
+    const customMsg = extraArgs.join(' ').trim() || null;
+    const result = createCheckpointCommit(process.cwd(), { message: customMsg });
+    if (result.success) {
+      console.log(`  \x1b[32m✔ Checkpoint created:\x1b[0m [${result.commitHash}]`);
+      const status = getGitStatus(process.cwd());
+      console.log(`  Branch: ${status.branch} | Unpushed: ${status.unpushedCommits}`);
+    } else {
+      console.error(`  \x1b[31m✗ Checkpoint failed:\x1b[0m ${result.error}`);
+      if (result.integrityErrors && result.integrityErrors.length > 0) {
+        result.integrityErrors.forEach(e => console.error(`    - ${e}`));
+      }
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (action === 'push-check' || action === 'push-summary') {
+    printHeader('Git Remote Push Summary');
+    const pushSummary = getPushSummary(process.cwd());
+    if (!pushSummary.canPush) {
+      console.log(`  \x1b[33mCannot push:\x1b[0m ${pushSummary.reason}`);
+      return;
+    }
+    console.log(`  • Target Branch:  \x1b[36m${pushSummary.branch}\x1b[0m`);
+    console.log(`  • Remote:         \x1b[36m${pushSummary.remote}\x1b[0m`);
+    console.log(`  • Unpushed:       ${pushSummary.unpushedCommits} commit(s)`);
+    if (pushSummary.commitLog && pushSummary.commitLog.length > 0) {
+      console.log('\n  Commits ready to push:');
+      pushSummary.commitLog.forEach(c => console.log(`    - ${c}`));
+    }
+    console.log('\n  Author approval is required before pushing to remote repository.');
+    return;
+  }
+
+  if (action === 'push') {
+    printHeader('Pushing to Remote Repository');
+    const pushSummary = getPushSummary(process.cwd());
+    if (!pushSummary.canPush) {
+      console.error(`  \x1b[31mError:\x1b[0m ${pushSummary.reason}`);
+      process.exit(1);
+    }
+    try {
+      const branch = pushSummary.branch;
+      const remote = pushSummary.remote;
+      console.log(`  Pushing ${branch} to ${remote}...`);
+      const out = runGit(`push ${remote} ${branch}`, process.cwd());
+      console.log(`  \x1b[32m✔ Successfully pushed to ${remote}/${branch}\x1b[0m`);
+      if (out) console.log(`  ${out}`);
+    } catch (err) {
+      console.error(`  \x1b[31m✗ Push failed:\x1b[0m ${err.message}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (action === 'compare' || action === 'experiment') {
+    const branchA = extraArgs[0];
+    if (!branchA) {
+      console.error('Usage: node scripts/soundingboard.js git compare <branch_name>');
+      return;
+    }
+    printHeader(`Comparing Creative Branches: ${branchA} vs HEAD`);
+    const comp = compareExperiments(process.cwd(), branchA);
+    if (comp.error) {
+      console.error(`  \x1b[31mError:\x1b[0m ${comp.error}`);
+      return;
+    }
+    console.log(`  Total file changes: ${comp.totalFilesChanged}`);
+    if (comp.changedScenes.length > 0) {
+      console.log(`  • Scene differences (${comp.changedScenes.length}):`);
+      comp.changedScenes.forEach(s => console.log(`    - ${s.id} [${s.status}]`));
+    }
+    if (comp.changedChapters.length > 0) {
+      console.log(`  • Chapter differences (${comp.changedChapters.length}):`);
+      comp.changedChapters.forEach(c => console.log(`    - ${c.id} [${c.status}]`));
+    }
+    console.log('\n  Note: Git identifies textual changes; the author chooses which creative direction to adopt.');
+    return;
+  }
+
+  console.log(`
+Usage:
+  node scripts/${BIN_NAME}.js git status              Summarize creative changes since last checkpoint
+  node scripts/${BIN_NAME}.js git checkpoint [msg]    Create local commit (runs technical integrity check)
+  node scripts/${BIN_NAME}.js git verify              Verify technical integrity (scene YAML, playlist IDs)
+  node scripts/${BIN_NAME}.js git push-check          Display unpushed commits and remote target
+  node scripts/${BIN_NAME}.js git push                Push approved commits to remote
+  node scripts/${BIN_NAME}.js git compare <branch>    Compare structural differences between branches
+  `);
+}
+
+function showHelp() {
+  console.log(`
+${APP_NAME} novel engineering CLI
+
+Usage:
+  node scripts/${BIN_NAME}.js init [folder] [--form]  Scaffold workspace (forms: short_story, novella, novel, series, world)
+  node scripts/${BIN_NAME}.js promote [--to=...]      Upgrade workspace scope (--to=series or --to=world)
+  node scripts/${BIN_NAME}.js status                 Show the status of each pipeline stage
+  node scripts/${BIN_NAME}.js brief                  Executive summary of manuscript progress & state
+  node scripts/${BIN_NAME}.js git [status|summary...] Creative history & author-paced Git checkpoints
+  node scripts/${BIN_NAME}.js visualizer [ekg|net]   Launch State Road AI Story Console (EKG & Cast Network)
+  node scripts/${BIN_NAME}.js audio [chapter]        Audiobook acoustic & breath cadence diagnostic
+  node scripts/${BIN_NAME}.js name [options]         Tactical onomastic generator (flags: --culture, --genre, --target, --caste)
+  node scripts/${BIN_NAME}.js names [options]        (Alias for name)
+  node scripts/${BIN_NAME}.js craft search <query>   Search ${getCraftModuleCount()} craft modules (flags: --stage, --genre, --scope, --json)
+  node scripts/${BIN_NAME}.js okf-lint              Validate all craft modules against ICM standards
+  node scripts/${BIN_NAME}.js diag [name] [args]     Run diagnostic tools (rhythm, dialogue, tense, etc.)
+  node scripts/${BIN_NAME}.js wizard [name] [args]   Run creative wizards (onboard, unstuck, heat, etc.)
+  node scripts/${BIN_NAME}.js run-stage <stage_id>   Compile the stage packet for the executing agent
+  node scripts/${BIN_NAME}.js pack <name> [args]     Assemble mechanical context pack (unstuck, heat, scene, etc.)
+  node scripts/${BIN_NAME}.js pack-chapter <N>       Assemble token-disciplined drafting kit for Chapter N
+  node scripts/${BIN_NAME}.js audit [path ...]       Scene-scoped AI prose tell & rhythm scan (<sc-id|path>)
+  node scripts/${BIN_NAME}.js chapter-audit [ch]     Chapter-scoped multi-scene cadence & break efficacy audit
+  node scripts/${BIN_NAME}.js commandments [sc|ch]   Advisory audit of 5 Coyne commandments against Stage 02 intent
+  node scripts/${BIN_NAME}.js continuity [dir|sc]    Scan scenes/chapters for proper-noun consistency & canon match
+  node scripts/${BIN_NAME}.js canon query <entity>   Query established canon facts for an entity
+  node scripts/${BIN_NAME}.js canon check            Check canon for unverified tags
+  node scripts/${BIN_NAME}.js timeline               Verify story chronology and temporal anchors
+  node scripts/${BIN_NAME}.js threads                Inspect narrative threads, subplots, and promises
+  node scripts/${BIN_NAME}.js gate <chapter>         Evaluate Stage 04 gate verdicts (sole setter of passed)
+  node scripts/${BIN_NAME}.js manuscript-report      Comprehensive whole-book narrative & voice report
+  node scripts/${BIN_NAME}.js ingest <file|dir>      Ingest external raw drafts into Stage 03 with inputs/ archiving & canon
+  node scripts/${BIN_NAME}.js import <file|dir>      (Alias for ingest)
+  node scripts/${BIN_NAME}.js check-update            Check remote repository for new studio updates
+  node scripts/${BIN_NAME}.js update [--force]        Safely pull upstream updates with auto-snapshot & conflict defense
+  node scripts/${BIN_NAME}.js doctor [--fix]          Inspect environment and auto-heal missing tools & configs
+  node scripts/${BIN_NAME}.js graduate <draft>       Graduate draft into manuscript/scenes/ with allocated ID
+  node scripts/${BIN_NAME}.js reindex                Rebuild derived manuscript.json from scenes and chapters
+  node scripts/${BIN_NAME}.js redpen [--since <ref>] Audit Git changes for unbracketed prose edits
+  node scripts/${BIN_NAME}.js capture --file <path>  Normalize and index session into conversations/
+  node scripts/${BIN_NAME}.js sync-skills            Synchronize skills from .claude/ into .agents/
+  node scripts/${BIN_NAME}.js export [--format=...]  Export manuscript (.html, .docx, .epub)
+  node scripts/${BIN_NAME}.js compile [--all]        Compile passed chapters into manuscript.html (+ .epub via pandoc)
+  `);
+}
+
+if (process.argv[1] && (process.argv[1].endsWith('soundingboard.js') || process.argv[1].endsWith('saga.js') || process.argv[1].endsWith('sb.js'))) {
+switch (command) {
+  case 'doctor':
+    handleDoctor(args.slice(1));
+    break;
+  case 'check-update':
+    await handleCheckUpdate();
+    break;
+  case 'update':
+    await handleUpdate({ force: args.includes('--force') });
+    break;
+  case 'init':
+    handleInit(subCommand);
+    break;
+  case 'status':
+    handleStatus(subCommand);
+    break;
+  case 'brief':
+  case 'resume':
+    handleBrief();
+    break;
+  case 'craft':
+    handleCraftSearch(args.slice(1));
+    break;
+  case 'okf-lint':
+  case 'lint':
+    handleOkfLint();
+    break;
+  case 'diag':
+  case 'diagnostic':
+  case 'diagnostics':
+    handleDiagnostic(subCommand, args.slice(2));
+    break;
+  case 'wizard':
+  case 'wizards':
+    handleWizard(subCommand, args.slice(2));
+    break;
+  case 'run-stage':
+    handleRunStage(subCommand || args[2]);
+    break;
+  case 'pack':
+    handlePack(subCommand, args.slice(2));
+    break;
+  case 'pack-unstuck':
+    handlePack('unstuck', args.slice(1));
+    break;
+  case 'pack-brainstorm':
+    handlePack('brainstorm', args.slice(1));
+    break;
+  case 'pack-interview':
+    handlePack('interview', args.slice(1));
+    break;
+  case 'pack-heat':
+  case 'pack-dialogue-heat':
+    handlePack('heat', args.slice(1));
+    break;
+  case 'pack-bloom':
+  case 'pack-sensory-bloom':
+    handlePack('bloom', args.slice(1));
+    break;
+  case 'pack-scene':
+  case 'pack-stage-scene':
+    handlePack('scene', args.slice(1));
+    break;
+  case 'pack-bracket':
+  case 'pack-bracket-method':
+    handlePack('bracket', args.slice(1));
+    break;
+  case 'pack-theme':
+  case 'pack-theme-weaver':
+    handlePack('theme', args.slice(1));
+    break;
+  case 'pack-causality':
+  case 'pack-therefore-but':
+    handlePack('causality', args.slice(1));
+    break;
+  case 'pack-wwxdu':
+    handlePack('wwxdu', args.slice(1));
+    break;
+  case 'pack-subplot-genesis':
+    handlePack('subplot-genesis', args.slice(1));
+    break;
+  case 'pack-subplot-braid':
+    handlePack('subplot-braid', args.slice(1));
+    break;
+  case 'pack-subplot-collision':
+    handlePack('subplot-collision', args.slice(1));
+    break;
+  case 'pack-subplot-resolution':
+    handlePack('subplot-resolution', args.slice(1));
+    break;
+  case 'pack-dna':
+  case 'pack-character-dna':
+    handlePack('dna', args.slice(1));
+    break;
+  case 'pack-blind-reader':
+  case 'pack-reader':
+    handlePack('blind-reader', args.slice(1));
+    break;
+  case 'pack-plot-interrogator':
+  case 'pack-interrogator':
+  case 'pack-devil':
+    handlePack('plot-interrogator', args.slice(1));
+    break;
+  case 'pack-debrief':
+  case 'pack-ingest-debrief':
+    handlePack('debrief', args.slice(1));
+    break;
+  case 'pack-naming':
+  case 'pack-name':
+    handlePack('naming', args.slice(1));
+    break;
+  case 'pack-world':
+  case 'pack-worldbuilding':
+    handlePack('world', args.slice(1));
+    break;
+  case 'pack-wiki':
+    handlePack('wiki', args.slice(1));
+    break;
+  case 'pack-setting':
+  case 'pack-location':
+    handlePack('setting', args.slice(1));
+    break;
+  case 'pack-dig':
+  case 'pack-socratic-dig':
+    handlePack('dig', args.slice(1));
+    break;
+  case 'name':
+  case 'names':
+  case 'generate-name': {
+    const { runCli } = await import('./name_generator.js');
+    runCli(args.slice(1));
+    break;
+  }
+  case 'pack-chapter':
+    handlePackChapter(subCommand || args[1]);
+    break;
+  case 'okf-index':
+    handleOkfIndex();
+    break;
+  case 'sync-skills': {
+    const { syncSkills } = await import('./sync_skills.js');
+    console.log(`\n\x1b[1m\x1b[35m=== Synchronizing Harness Skills (.claude -> .agents) ===\x1b[0m`);
+    const res = syncSkills(process.cwd());
+    console.log(`\x1b[32m✔ Synchronized ${res.count} skills to .agents/skills/:\x1b[0m`);
+    res.skills.forEach(s => console.log(`  • /${s}`));
+    console.log('');
+    break;
+  }
+  case 'audit':
+    await handleAudit(args.slice(1));
+    break;
+  case 'chapter-audit':
+    await handleChapterAudit(args.slice(1));
+    break;
+  case 'commandment-audit':
+  case 'audit-commandments':
+  case 'commandments':
+    await handleCommandmentAudit(args.slice(1));
+    break;
+  case 'continuity':
+    await handleContinuity(args.slice(1));
+    break;
+  case 'audio':
+  case 'audiobook':
+    await handleDiagnostic('audio', args.slice(1));
+    break;
+  case 'canon':
+    await handleCanon(subCommand, args.slice(2));
+    break;
+  case 'promote':
+  case 'upgrade-scope':
+    handlePromote(subCommand, args.slice(2));
+    break;
+  case 'timeline':
+    handleTimeline();
+    break;
+  case 'threads':
+    await handleThreads(args.slice(1));
+    break;
+  case 'git':
+    await handleGit(subCommand, args.slice(2));
+    break;
+  case 'pack-git':
+    handlePack('git', args.slice(1));
+    break;
+  case 'redpen': {
+    const { checkGitDiffSince } = await import('./redpen.js');
+    const sinceIdx = args.indexOf('--since');
+    const commitRef = sinceIdx !== -1 && args[sinceIdx + 1] ? args[sinceIdx + 1] : 'HEAD~1';
+    console.log(`\n\x1b[1m\x1b[35m=== Red Pen Audit (since ${commitRef}) ===\x1b[0m`);
+    const violations = checkGitDiffSince(commitRef, process.cwd());
+    if (violations.length === 0) {
+      console.log('\x1b[32m✔ PASS:\x1b[0m Zero unbracketed author prose violations detected.\n');
+    } else {
+      console.error(`\x1b[31m✗ VIOLATION:\x1b[0m Found ${violations.length} files with modified author prose:`);
+      violations.forEach(v => console.error(`  • ${v.file}: ${v.details}`));
+      console.log('');
+      process.exit(1);
+    }
+    break;
+  }
+  case 'capture': {
+    const { captureSession } = await import('./capture.js');
+    const fileIdx = args.indexOf('--file');
+    const targetFile = fileIdx !== -1 ? args[fileIdx + 1] : null;
+    const harnessIdx = args.indexOf('--harness');
+    const harness = harnessIdx !== -1 ? args[harnessIdx + 1] : 'antigravity';
+
+    if (targetFile) {
+      console.log(`\n\x1b[1m\x1b[35m=== Capturing Conversation Session ===\x1b[0m`);
+      const res = captureSession(targetFile, { harness }, process.cwd());
+      if (res.success) {
+        console.log(`\x1b[32m✔ Successfully captured session:\x1b[0m ${res.outPath}`);
+        console.log(`  - Turns: ${res.turnsCount}`);
+        console.log(`  - Hash: ${res.hash.slice(0, 16)}...\n`);
+      } else {
+        console.error(`\x1b[31m✗ Error:\x1b[0m ${res.error}\n`);
+        process.exit(1);
+      }
+    } else {
+      console.log('\x1b[33mUsage: node scripts/soundingboard.js capture --file <transcript.jsonl> [--harness <name>]\x1b[0m\n');
+    }
+    break;
+  }
+  case 'gate':
+    handleGateCmd(subCommand || args[1], args.slice(2));
+    break;
+  case 'manuscript-report':
+  case 'report':
+    handleManuscriptReportCmd(args.slice(1));
+    break;
+  case 'ingest':
+  case 'import':
+    handleImportCmd(subCommand || args[1], args.slice(2));
+    break;
+  case 'export':
+    handleCompile(args.slice(1));
+    break;
+  case 'compile':
+    handleCompile();
+    break;
+  case 'graduate': {
+    const draftPath = subCommand || args[1];
+    if (!draftPath) {
+      console.error('\x1b[33mUsage: node scripts/soundingboard.js graduate <draft_file_path>\x1b[0m');
+      break;
+    }
+    const { allocateSceneId } = await import('./id_allocator.js');
+    const { reindex } = await import('./reindex.js');
+    const { parse, stringify } = await import('./frontmatter.js');
+
+    const resolvedDraft = path.resolve(process.cwd(), draftPath);
+    if (!fs.existsSync(resolvedDraft)) {
+      console.error(`\x1b[31mError: Draft file not found at ${resolvedDraft}\x1b[0m`);
+      break;
+    }
+
+    const raw = fs.readFileSync(resolvedDraft, 'utf8');
+    let meta = {};
+    let body = raw;
+    try {
+      meta = parse(raw, resolvedDraft);
+      const { strip } = await import('./frontmatter.js');
+      body = strip(raw).trim();
+    } catch (_) {
+      body = raw.trim();
+    }
+
+    const newSceneId = allocateSceneId(process.cwd());
+    const scenesDir = path.join(process.cwd(), 'manuscript', 'scenes');
+    fs.mkdirSync(scenesDir, { recursive: true });
+    const targetScenePath = path.join(scenesDir, `${newSceneId}.md`);
+
+    meta.id = newSceneId;
+    meta.status = 'drafted';
+    meta.schema = '2.0';
+    if (!meta.threads) meta.threads = ['th-01'];
+
+    fs.writeFileSync(targetScenePath, stringify(meta, body), 'utf8');
+    reindex(process.cwd());
+
+    console.log(`\n\x1b[32m✔ Scene successfully graduated!\x1b[0m`);
+    console.log(`  - Source: ${draftPath}`);
+    console.log(`  - Graduated to: manuscript/scenes/${newSceneId}.md`);
+    console.log(`  - POV: ${meta.pov || 'unassigned'}`);
+    console.log(`  - Value Shift: ${meta.value_in || '?'} → ${meta.value_out || '?'}`);
+    console.log(`  - Status: floating in scene pool (ready for chapter playlist)\n`);
+    break;
+  }
+  case 'reindex': {
+    const { reindex } = await import('./reindex.js');
+    const result = reindex();
+    console.log(`\x1b[32m✔ Reindexed manuscript:\x1b[0m ${result.chapters.length} chapters, ${result.scenes.length} scenes, ${result.total_words} words.`);
+    break;
+  }
+  case 'migrate-to-scenes': {
+    const { migrateToScenes } = await import('./migrate_to_scenes.js');
+    const report = migrateToScenes();
+    console.log(`\x1b[32m✔ Migration completed successfully!\x1b[0m`);
+    console.log(`  - Backup created at: ${report.backupDir}`);
+    console.log(`  - Chapters migrated: ${report.chaptersMigrated}`);
+    console.log(`  - Scenes created: ${report.scenesCreated}`);
+    console.log(`  - Average words per scene: ${report.averageWordsPerScene}`);
+    if (report.averageWordsPerScene > 0 && report.averageWordsPerScene < 800) {
+      console.log(`  \x1b[33m⚠ Warning: Average scene length is < 800 words (${report.averageWordsPerScene}w). Review for over-splitting.\x1b[0m`);
+    }
+    if (report.unwrittenBreakRationales > 0) {
+      console.log(`  \x1b[33m⚠ Action required: ${report.unwrittenBreakRationales} chapters need human-authored break_rationale.\x1b[0m`);
+    }
+    console.log(`  - Unfilled fields (nulls): ${report.nullFieldCount}\n`);
+    break;
+  }
+  case 'visualizer':
+  case 'console':
+    await handleVisualizer(subCommand, args.slice(2));
+    break;
+  case '--help':
+  case 'help':
+  default:
+    showHelp();
+    break;
+}
+
+}

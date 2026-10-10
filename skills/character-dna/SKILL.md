@@ -10,7 +10,7 @@ When creating or fleshing out a character from a composite of other characters o
    ```bash
    node scripts/pack-character-dna.js [character_name]
    ```
-2. Execute the contract natively per `_config/templates/character_dna_playbook.template.md`.
+2. Execute the contract natively per `templates/character_dna_playbook.template.md`.
 3. Harvest 3 distinct donor registers:
    - Donor 1: Cadence & Status (speech rhythm, tempo, dialogue posture).
    - Donor 2: Psychological Wound & Moral Lie (internal engine, trauma defense).

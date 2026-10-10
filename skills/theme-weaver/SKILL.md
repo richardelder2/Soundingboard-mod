@@ -11,6 +11,6 @@ When developing thematic depth in a scene:
    ```bash
    node scripts/pack-theme-weaver.js [chapter_or_theme]
    ```
-3. Execute the contract natively per `_config/templates/theme_weaver_playbook.template.md`.
+3. Execute the contract natively per `templates/theme_weaver_playbook.template.md`.
 4. Obey Rule 4: **The narrator never states the theme.**
 5. Provide environmental symbolism, character behavioral motifs, dialogue subtext cues, and a blended demonstration passage showing all three operating together in prose.

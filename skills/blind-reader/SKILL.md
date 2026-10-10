@@ -21,7 +21,7 @@ Simulates reading a chapter draft cold—with zero future knowledge or authorial
    ```
 
 2. **Execute Playbook Contract:**
-   Follow `_config/templates/blind_reader_playbook.template.md` to deliver:
+   Follow `templates/blind_reader_playbook.template.md` to deliver:
    - **The Emotional EKG:** Chronological pacing graph (Hook, Complication, Turning Point, Anchor).
    - **Trust Thermometer:** Running score (-5 to +5) for each active character on page.
    - **The Prediction Ledger:** Top 3 predictions with estimated percentage likelihoods.

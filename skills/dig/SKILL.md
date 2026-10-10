@@ -26,7 +26,7 @@ Asks the author questions, one at a time, until they discover what they are expl
    ```
 
 2. **Execute Playbook Contract:**
-   Follow `_config/templates/dig_playbook.template.md` (Playbook #24) to deliver:
+   Follow `templates/dig_playbook.template.md` (Playbook #24) to deliver:
    - **One Question per Turn:** built from the author's own words, with no smuggled story content.
    - **The Seam Dig:** questions at the gaps between atomics, canon and the author's answers.
    - **The Meaning Ladder:** surface → cause → stakes → meaning.

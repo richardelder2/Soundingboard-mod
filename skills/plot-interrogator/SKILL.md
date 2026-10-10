@@ -21,7 +21,7 @@ Ruthlessly cross-examines plot decisions, contrivances, and character choices be
    ```
 
 2. **Execute Playbook Contract:**
-   Follow `_config/templates/plot_interrogator_playbook.template.md` to deliver:
+   Follow `templates/plot_interrogator_playbook.template.md` to deliver:
    - **The "Why Don't They Just..." Cross-Examination:** Attack the top 3 common-sense alternatives characters bypassed.
    - **The Contrivance & Convenience Audit:** Audit for convenient scaffolding, sudden incompetence, and coincidence clocks.
    - **Information & Epistemic Sanity Check:** Verify character knowledge, memory, and the 10-Second Conversation rule.

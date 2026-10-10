@@ -11,7 +11,7 @@ When dialogue feels flat or lacks tension:
    ```bash
    node scripts/pack-dialogue-heat.js [chapter_or_snippet] [character_names...]
    ```
-3. Execute the contract natively per `_config/templates/dialogue_heat_playbook.template.md`.
+3. Execute the contract natively per `templates/dialogue_heat_playbook.template.md`.
 4. Apply the chosen tension mode (Subtext, Status Play, or Avoidance).
 5. Produce 2 rewritten alternatives:
    - Alternative 1: Smoldering / Cold Friction (Restrained subtext).

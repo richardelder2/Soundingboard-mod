@@ -11,7 +11,7 @@ When a scene or setting lacks viscosity:
    ```bash
    node scripts/pack-sensory-bloom.js [location_or_chapter]
    ```
-3. Execute the contract natively per `_config/templates/sensory_bloom_playbook.template.md`.
+3. Execute the contract natively per `templates/sensory_bloom_playbook.template.md`.
 4. Focus on budgeted sensory registers (Scent & Taste, Sound & Acoustics, Tactile & Temperature, Visceral Sight & Shadows).
 5. Produce 2 rewritten alternatives:
    - Alternative 1: Subtle Sensory Grounding (Lean & active).

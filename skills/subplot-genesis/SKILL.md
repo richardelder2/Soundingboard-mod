@@ -10,7 +10,7 @@ When designing or outlining secondary storylines:
    ```bash
    node scripts/pack-subplot-genesis.js [focus_or_theme]
    ```
-2. Execute the contract natively per `_config/templates/subplot_genesis_playbook.template.md`.
+2. Execute the contract natively per `templates/subplot_genesis_playbook.template.md`.
 3. Design 3 contrasting subplots across required typologies:
    - Type A: The Contrasting / Mundane problem (life continuing outside the quest).
    - Type B: The Thematic Counter-Weight.

@@ -11,6 +11,6 @@ When the author is stuck or blocked on a chapter or scene:
    ```bash
    node scripts/pack-unstuck.js [chapter_number]
    ```
-3. Execute the contract natively per `_config/templates/unstuck_playbook.template.md`.
+3. Execute the contract natively per `templates/unstuck_playbook.template.md`.
 4. Diagnose the specific roadblock (Pacing, Geography, Conflict, or Surprise).
 5. Deliver exactly 3 distinct narrative forks (Option A, Option B, Option C), each with an evocative title, mechanism, and 2–3 lines of sample active prose.
