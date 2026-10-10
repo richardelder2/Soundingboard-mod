@@ -1,5 +1,6 @@
 {
   "name": "soundingboard-marketplace",
+  "description": "Soundingboard Claude Code Mod & Novel Production Studio",
   "owner": {
     "name": "Rick Elder",
     "email": "richardelder2@users.noreply.github.com"
@@ -13,3 +14,4 @@
     }
   ]
 }
+
