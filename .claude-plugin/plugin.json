@@ -1,0 +1,24 @@
+{
+  "name": "soundingboard",
+  "displayName": "Soundingboard: The Author's Intelligent Studio",
+  "version": "1.0.0",
+  "description": "An in-process Claude Code Mod, continuity sentry, and novel production studio for novelists and fiction writers.",
+  "author": {
+    "name": "Rick Elder",
+    "email": "richardelder2@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/richardelder2/soundingboard-mod.git"
+  },
+  "keywords": [
+    "creative-writing",
+    "novel",
+    "fiction",
+    "story-grid",
+    "authorial-sovereignty",
+    "craft-codex",
+    "claude-mod"
+  ]
+}

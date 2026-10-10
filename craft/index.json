@@ -1,0 +1,34 @@
+[
+  {
+    "id": "five_commandments",
+    "title": "The Five Commandments of the Scene",
+    "category": "commandments",
+    "tags": ["scene", "inciting-incident", "progressive-complication", "crisis", "climax", "resolution"],
+    "summary": "Every scene is an atomic dramatic quantum requiring 5 events: Inciting Incident, Progressive Complication turning point, Crisis question, Climax action, and Resolution.",
+    "relativePath": "commandments.md"
+  },
+  {
+    "id": "mru_sequence",
+    "title": "Dwight Swain's Motivating-Reaction Units (MRUs)",
+    "category": "mru",
+    "tags": ["swain", "mru", "motivation", "reaction", "feeling", "reflex", "rational-action"],
+    "summary": "Prose rhythm sequencing: Cause outside the POV character (Motivation) precedes Effect inside the character (Feeling -> Reflex -> Rational Action).",
+    "relativePath": "mru.md"
+  },
+  {
+    "id": "value_progression",
+    "title": "Emotional Value Shifts & Polarity",
+    "category": "values",
+    "tags": ["value-shift", "polarity", "emotional-charge", "story-grid"],
+    "summary": "A scene that does not turn on an emotional value polarity (e.g. Hope to Despair, Ignorance to Revelation) is a non-event.",
+    "relativePath": "values.md"
+  },
+  {
+    "id": "ai_tells",
+    "title": "AI-Tell Detection & Cadence Preservation",
+    "category": "voice",
+    "tags": ["ai-tells", "flattening", "voice", "cliches", "cadence", "rhythm"],
+    "summary": "Detects corporate voice flattening, cliché throat-clearing, and symmetry traps. Preserves idiosyncratic human author voice.",
+    "relativePath": "ai-tells.md"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "name": "soundingboard-marketplace",
+  "owner": {
+    "name": "Rick Elder",
+    "email": "richardelder2@users.noreply.github.com"
+  },
+  "plugins": [
+    {
+      "name": "soundingboard",
+      "source": "./",
+      "description": "The Author's Intelligent Sounding Board & Novel Production Studio",
+      "version": "1.0.0"
+    }
+  ]
+}

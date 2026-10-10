@@ -1,0 +1,20 @@
+{
+  "name": "soundingboard-mod",
+  "version": "1.0.0",
+  "description": "Soundingboard Claude Code Mod — Novel Production Studio & Continuity Sentry",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "lint": "node --check hooks/register.js hooks/modules/*.js lib/*.js",
+    "validate": "claude plugin validate ."
+  },
+  "keywords": [
+    "creative-writing",
+    "claude-code-mod",
+    "fiction-writing",
+    "storytelling",
+    "story-grid"
+  ],
+  "author": "Rick Elder",
+  "license": "MIT"
+}
