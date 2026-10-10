@@ -1,34 +1,1805 @@
 [
   {
-    "id": "five_commandments",
-    "title": "The Five Commandments of the Scene",
-    "category": "commandments",
-    "tags": ["scene", "inciting-incident", "progressive-complication", "crisis", "climax", "resolution"],
-    "summary": "Every scene is an atomic dramatic quantum requiring 5 events: Inciting Incident, Progressive Complication turning point, Crisis question, Climax action, and Resolution.",
+    "id": "CONTEXT",
+    "title": "CONTEXT",
+    "category": "general",
+    "tags": [],
+    "summary": "Per ICM §3.2, agents load targeted craft modules for stage, genre, or flag, never inlining the full library....",
+    "relativePath": "CONTEXT.md"
+  },
+  {
+    "id": "SPECIFICATION",
+    "title": "Soundingboard Open Knowledge Format (OKF) Specification",
+    "category": "okf_specification",
+    "tags": [],
+    "summary": "type: okf_specification...",
+    "relativePath": "SPECIFICATION.md"
+  },
+  {
+    "id": "act_2b_desert_crossing_and_midpoint_slog",
+    "title": "Act 2B Desert Crossing: Breaking the Midpoint Slump & Narrative Slog",
+    "category": "craft_rule",
+    "tags": [
+      "act 2b",
+      "midpoint slog",
+      "second act drag",
+      "pacing collapse",
+      "ticking clock"
+    ],
+    "summary": "id: act_2b_desert_crossing_and_midpoint_slog...",
+    "relativePath": "act_2b_desert_crossing_and_midpoint_slog.md"
+  },
+  {
+    "id": "adventure_quest_survival_dynamics",
+    "title": "The Adventure Quest: Environmental Hostility, Resource Attrition & Team Dynamics",
+    "category": "craft_structure",
+    "tags": [
+      "adventure quest",
+      "survival dynamics",
+      "hostile environment",
+      "journey structure",
+      "peril"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "adventure_quest_survival_dynamics.md"
+  },
+  {
+    "id": "adversarial_prose_auditing_and_slop_filtering",
+    "title": "Adversarial Prose Auditing: Slop Density, POV Filter Stripping & Sensory Anchors",
+    "category": "craft_rule",
+    "tags": [
+      "slop filtering",
+      "AI tells",
+      "adversarial auditing",
+      "prose polish"
+    ],
+    "summary": "id: adversarial_prose_auditing_and_slop_filtering...",
+    "relativePath": "adversarial_prose_auditing_and_slop_filtering.md"
+  },
+  {
+    "id": "agent_safe_editorial_conduct",
+    "title": "Agent-Safe Editorial Conduct: Minimal Intervention & Canon Invariance",
+    "category": "craft_rule",
+    "tags": [
+      "agent conduct",
+      "minimal intervention",
+      "canon invariance",
+      "author agency",
+      "sensitive content",
+      "editorial ethics"
+    ],
+    "summary": "id: agent_safe_editorial_conduct...",
+    "relativePath": "agent_safe_editorial_conduct.md"
+  },
+  {
+    "id": "anthropological_worldbuilding",
+    "title": "Anthropological Worldbuilding: Culture, Taboo & Internal Logic",
+    "category": "craft_structure",
+    "tags": [
+      "worldbuilding",
+      "anthropology",
+      "institutions",
+      "customs",
+      "material culture"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "anthropological_worldbuilding.md"
+  },
+  {
+    "id": "anti_hero_moral_ambiguity",
+    "title": "The Anti-Hero Arc: Moral Ambiguity, Justified Transgression & Downfall/Redemption",
+    "category": "craft_structure",
+    "tags": [
+      "anti-hero",
+      "moral ambiguity",
+      "flawed protagonist",
+      "compromise"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "anti_hero_moral_ambiguity.md"
+  },
+  {
+    "id": "anti_tell_suppression",
+    "title": "Suppression of Narrative Theme Explanation",
+    "category": "craft_rule",
+    "tags": [
+      "show dont tell",
+      "theme explanation",
+      "moralizing tail",
+      "unstated theme"
+    ],
+    "summary": "id: anti_tell_suppression...",
+    "relativePath": "anti_tell_suppression.md"
+  },
+  {
+    "id": "archetypal_character_transformation_arcs",
+    "title": "Archetypal Character Transformation Arcs",
+    "category": "craft_structure",
+    "tags": [
+      "character transformation",
+      "Jungian individuation",
+      "positive change arc",
+      "K.M. Weiland"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "archetypal_character_transformation_arcs.md"
+  },
+  {
+    "id": "audience_calibration_mg_ya_adult_crossover",
+    "title": "Audience Calibration: Middle Grade, Young Adult, Adult & Crossover Horizons",
+    "category": "craft_rule",
+    "tags": [
+      "audience calibration",
+      "middle grade",
+      "young adult",
+      "adult fiction",
+      "crossover",
+      "market expectations"
+    ],
+    "summary": "id: audience_calibration_mg_ya_adult_crossover...",
+    "relativePath": "audience_calibration_mg_ya_adult_crossover.md"
+  },
+  {
+    "id": "bildungsroman_moral_awakening",
+    "title": "The Bildungsroman: Innocence, Disillusionment & Moral Self-Integration",
+    "category": "craft_structure",
+    "tags": [
+      "bildungsroman",
+      "coming of age",
+      "moral awakening",
+      "loss of innocence"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "bildungsroman_moral_awakening.md"
+  },
+  {
+    "id": "chapter_architecture_and_ending_hooks",
+    "title": "Chapter Architecture & The Taxonomy of Narrative Hooks",
+    "category": "craft_structure",
+    "tags": [
+      "chapter break",
+      "ending hook",
+      "cliffhanger",
+      "revelation",
+      "pacing",
+      "cold open",
+      "cognitive tempo"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "chapter_architecture_and_ending_hooks.md"
+  },
+  {
+    "id": "chapter_endings_and_momentum_continuity",
+    "title": "Chapter Endings & Momentum Continuity: Nine Energies Beyond the Cliffhanger",
+    "category": "craft_structure",
+    "tags": [
+      "chapter endings",
+      "momentum",
+      "cliffhanger",
+      "ending energy",
+      "narrative closure",
+      "chapter breaks"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "chapter_endings_and_momentum_continuity.md"
+  },
+  {
+    "id": "chapter_openings_and_entry_vectors",
+    "title": "Chapter Openings & Entry Vectors: The Seven Modes of Narrative Launch",
+    "category": "craft_rule",
+    "tags": [
+      "chapter opening",
+      "entry vectors",
+      "cold open",
+      "throat clearing",
+      "narrative launch",
+      "first lines"
+    ],
+    "summary": "id: chapter_openings_and_entry_vectors...",
+    "relativePath": "chapter_openings_and_entry_vectors.md"
+  },
+  {
+    "id": "character_arc_anatomy_lie_wound_want_need",
+    "title": "Character Arc Anatomy: Lie, Wound, Want & Need",
+    "category": "craft_structure",
+    "tags": [
+      "character arc",
+      "the Lie",
+      "ghost wound",
+      "want vs need",
+      "K.M. Weiland"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "character_arc_anatomy_lie_wound_want_need.md"
+  },
+  {
+    "id": "chekhovs_gun_and_plant_payoff",
+    "title": "Chekhov",
+    "category": "craft_rule",
+    "tags": [
+      "Chekhovs gun",
+      "plant and payoff",
+      "narrative promise",
+      "setup"
+    ],
+    "summary": "id: chekhovs_gun_and_plant_payoff...",
+    "relativePath": "chekhovs_gun_and_plant_payoff.md"
+  },
+  {
+    "id": "cinematic_blocking_and_lens",
+    "title": "Cinematic Staging: Camera Distance, Depth of Field & Character Blocking",
+    "category": "craft_rule",
+    "tags": [
+      "blocking",
+      "staging",
+      "camera lens",
+      "physical motion"
+    ],
+    "summary": "id: cinematic_blocking_and_lens...",
+    "relativePath": "cinematic_blocking_and_lens.md"
+  },
+  {
+    "id": "comedy_farce_and_satirical_timing_engine",
+    "title": "The Architecture of Comedy, Farce & Satirical Timing",
+    "category": "craft_structure",
+    "tags": [
+      "comedy timing",
+      "farce",
+      "satire",
+      "rule of three",
+      "status reversal"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "comedy_farce_and_satirical_timing_engine.md"
+  },
+  {
+    "id": "commandments",
+    "title": "Commandments",
+    "category": "general",
+    "tags": [],
+    "summary": "A scene is the atomic dramatic quantum of a novel. If a scene does not have all five commandments, it is an incomplete dramatic event....",
     "relativePath": "commandments.md"
   },
   {
-    "id": "mru_sequence",
-    "title": "Dwight Swain's Motivating-Reaction Units (MRUs)",
-    "category": "mru",
-    "tags": ["swain", "mru", "motivation", "reaction", "feeling", "reflex", "rational-action"],
-    "summary": "Prose rhythm sequencing: Cause outside the POV character (Motivation) precedes Effect inside the character (Feeling -> Reflex -> Rational Action).",
+    "id": "constraint_aware_drafting_and_assumptions",
+    "title": "Constraint-Aware Drafting & The Assumption Register: Pre-Flight Production Disciplines",
+    "category": "craft_rule",
+    "tags": [
+      "constraint aware drafting",
+      "assumption register",
+      "pre flight checklist",
+      "canon verification",
+      "drafting boundaries"
+    ],
+    "summary": "id: constraint_aware_drafting_and_assumptions...",
+    "relativePath": "constraint_aware_drafting_and_assumptions.md"
+  },
+  {
+    "id": "cosmic_horror_existential_dread",
+    "title": "Cosmic Horror & Existential Dread: The Epistemological Break",
+    "category": "craft_structure",
+    "tags": [
+      "cosmic horror",
+      "existential dread",
+      "Lovecraftian",
+      "epistemic horror"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "cosmic_horror_existential_dread.md"
+  },
+  {
+    "id": "courtly_intrigue_political_web",
+    "title": "Courtly Intrigue & Political Machinations: Information Warfare & Factional Cannibalism",
+    "category": "craft_structure",
+    "tags": [
+      "courtly intrigue",
+      "political web",
+      "factions",
+      "blackmail",
+      "Machiavellian"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "courtly_intrigue_political_web.md"
+  },
+  {
+    "id": "cpocl_plan_threat_conflict_engine",
+    "title": "The CPOCL Conflict Engine: Plan-Threat Architecture & The Seven Dimensions of Dramatic Conflict",
+    "category": "craft_structure",
+    "tags": [
+      "CPOCL",
+      "conflict engine",
+      "scene stakes",
+      "threat escalate",
+      "pacing"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "cpocl_plan_threat_conflict_engine.md"
+  },
+  {
+    "id": "dark_romantasy_touch_her_and_die",
+    "title": "Dark Romantasy: Fated Mates, Morally Gray Leads & The",
+    "category": "craft_structure",
+    "tags": [
+      "dark romantasy",
+      "touch her and die",
+      "enemies to lovers",
+      "shadow daddy"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "dark_romantasy_touch_her_and_die.md"
+  },
+  {
+    "id": "developmental_revision_and_layered_passes",
+    "title": "Developmental Revision: The Layered Macro-to-Micro Pass Methodology",
+    "category": "craft_rule",
+    "tags": [
+      "revision",
+      "editing",
+      "macro edit",
+      "line edit",
+      "developmental editing",
+      "beta triage",
+      "the cut pass"
+    ],
+    "summary": "id: developmental_revision_and_layered_passes...",
+    "relativePath": "developmental_revision_and_layered_passes.md"
+  },
+  {
+    "id": "dialogue_as_action_and_transactional_turns",
+    "title": "Dialogue as Action: Transactional Turning Points & State Shifts",
+    "category": "craft_structure",
+    "tags": [
+      "dialogue as action",
+      "dramatic transaction",
+      "dialogue turning point",
+      "conversational beats",
+      "power shift"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "dialogue_as_action_and_transactional_turns.md"
+  },
+  {
+    "id": "dialogue_beats_and_action_choreography",
+    "title": "Dialogue Choreography: Action Beats, Pause Micro-Timing & Attribution Stripping",
+    "category": "craft_rule",
+    "tags": [
+      "action beats",
+      "dialogue tag replacement",
+      "stage business",
+      "physical choreography"
+    ],
+    "summary": "id: dialogue_beats_and_action_choreography...",
+    "relativePath": "dialogue_beats_and_action_choreography.md"
+  },
+  {
+    "id": "dialogue_triage_and_multitrack_revision",
+    "title": "Dialogue Diagnostic Triage: Cadence, Tags & Multi-Track Revision",
+    "category": "craft_rule",
+    "tags": [
+      "dialogue triage",
+      "dialogue tags",
+      "action beats",
+      "interchangeable dialogue",
+      "cadence",
+      "revision playbook"
+    ],
+    "summary": "id: dialogue_triage_and_multitrack_revision...",
+    "relativePath": "dialogue_triage_and_multitrack_revision.md"
+  },
+  {
+    "id": "dual_timeline_convergence",
+    "title": "Dual Timeline Convergence: The Interlocking Mystery of Past & Present",
+    "category": "craft_structure",
+    "tags": [
+      "dual timeline",
+      "past and present",
+      "timeline convergence",
+      "braided narrative"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "dual_timeline_convergence.md"
+  },
+  {
+    "id": "dual_track_counterpoint_narrative",
+    "title": "The Dual-Track Counterpoint: Symmetrical Antagonism & Narrative Cross-Cutting",
+    "category": "craft_structure",
+    "tags": [
+      "dual track",
+      "counterpoint",
+      "thematic resonance",
+      "contrasting narratives"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "dual_track_counterpoint_narrative.md"
+  },
+  {
+    "id": "dyadic_relationship_dynamics_and_ledgers",
+    "title": "Dyadic Relationship Dynamics & Relational Ledgers: Tracking Interpersonal Systems",
+    "category": "craft_structure",
+    "tags": [
+      "relationship ledger",
+      "dyadic dynamics",
+      "interpersonal friction",
+      "status debt",
+      "trust vector",
+      "character pairings"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "dyadic_relationship_dynamics_and_ledgers.md"
+  },
+  {
+    "id": "dynastic_succession_and_contested_lineage_politics",
+    "title": "Dynastic Succession & Contested Lineage Politics: Bloodlines, Legitimacy & Marital Leverage",
+    "category": "craft_structure",
+    "tags": [
+      "dynasty",
+      "succession",
+      "lineage",
+      "genealogy",
+      "bastard",
+      "inheritance",
+      "game of thrones",
+      "dune"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "dynastic_succession_and_contested_lineage_politics.md"
+  },
+  {
+    "id": "dystopian_systemic_tension",
+    "title": "Dystopian Systemic Tension: Panopticon Mechanics & Compliance Cycles",
+    "category": "craft_structure",
+    "tags": [
+      "dystopia",
+      "systemic tension",
+      "panopticon",
+      "authoritarian control"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "dystopian_systemic_tension.md"
+  },
+  {
+    "id": "editorial_finding_format_and_confidence_scoring",
+    "title": "Editorial Finding Format & Confidence Scoring: Human-in-the-Loop Diagnostic Protocol",
+    "category": "craft_rule",
+    "tags": [
+      "finding format",
+      "confidence scoring",
+      "HITL",
+      "editorial review",
+      "revision playbook",
+      "author agency"
+    ],
+    "summary": "id: editorial_finding_format_and_confidence_scoring...",
+    "relativePath": "editorial_finding_format_and_confidence_scoring.md"
+  },
+  {
+    "id": "editorial_triage_and_beta_feedback_filtering",
+    "title": "Editorial Triage: Filtering Beta Feedback & Navigating Conflict",
+    "category": "craft_rule",
+    "tags": [
+      "editorial triage",
+      "beta readers",
+      "feedback filtering",
+      "revision strategy",
+      "notes"
+    ],
+    "summary": "id: editorial_triage_and_beta_feedback_filtering...",
+    "relativePath": "editorial_triage_and_beta_feedback_filtering.md"
+  },
+  {
+    "id": "emergent_ai_and_synthetic_archetypes",
+    "title": "Emergent AI & Synthetic Archetypes: Goblins, Demons, Nova",
+    "category": "craft_structure",
+    "tags": [
+      "artificial intelligence",
+      "synthetic consciousness",
+      "android archetype",
+      "cyberpunk"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "emergent_ai_and_synthetic_archetypes.md"
+  },
+  {
+    "id": "enneagram_character_fixations_and_disintegration",
+    "title": "The Enneagram Character Engine & Disintegration Trajectories",
+    "category": "craft_structure",
+    "tags": [
+      "enneagram",
+      "personality fixations",
+      "character disintegration",
+      "stress arrow"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "enneagram_character_fixations_and_disintegration.md"
+  },
+  {
+    "id": "epic_fantasy_polyphonic_convergence_and_avalanche",
+    "title": "Epic Fantasy & Space Opera: Polyphonic Voice Integrity & Avalanche Convergence",
+    "category": "craft_structure",
+    "tags": [
+      "epic fantasy",
+      "polyphonic convergence",
+      "Sanderlanche",
+      "climax avalanche"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "epic_fantasy_polyphonic_convergence_and_avalanche.md"
+  },
+  {
+    "id": "epistolary_found_document_technique",
+    "title": "Epistolary Architecture: Found Documents, Polyphonic Truth & Narrative Redaction",
+    "category": "craft_structure",
+    "tags": [
+      "epistolary",
+      "found footage",
+      "letters and logs",
+      "diegetic documents"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "epistolary_found_document_technique.md"
+  },
+  {
+    "id": "evolutionary_affective_story_prototypes",
+    "title": "Affective Narratology & Evolutionary Story Prototypes: The Neuro-Emotional Engine",
+    "category": "craft_primitive",
+    "tags": [
+      "evolutionary psychology",
+      "affective prototypes",
+      "survival instinct",
+      "primal stakes"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "evolutionary_affective_story_prototypes.md"
+  },
+  {
+    "id": "exposition_control_and_conversational_masking",
+    "title": "Exposition Control: Suppressing",
+    "category": "craft_rule",
+    "tags": [
+      "exposition control",
+      "as you know bob",
+      "maid and butler dialogue",
+      "weaponized exposition",
+      "info dump"
+    ],
+    "summary": "id: exposition_control_and_conversational_masking...",
+    "relativePath": "exposition_control_and_conversational_masking.md"
+  },
+  {
+    "id": "fair_play_whodunit_rules",
+    "title": "Fair-Play Mystery Architecture: The Detection Club & Clue Ledger",
+    "category": "craft_structure",
+    "tags": [
+      "fair play",
+      "whodunit",
+      "Knox commandments",
+      "clue matrix",
+      "detective puzzle"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "fair_play_whodunit_rules.md"
+  },
+  {
+    "id": "foreshadowing_architecture_and_subtle_plants",
+    "title": "Foreshadowing Architecture: Subtle Cues, Inevitability & Retroactive Clarity",
+    "category": "craft_rule",
+    "tags": [
+      "foreshadowing",
+      "subtle plants",
+      "payoff timing",
+      "narrative resonance"
+    ],
+    "summary": "id: foreshadowing_architecture_and_subtle_plants...",
+    "relativePath": "foreshadowing_architecture_and_subtle_plants.md"
+  },
+  {
+    "id": "four_corner_opposition_and_foil_matrix",
+    "title": "Four-Corner Opposition & Character Foil Matrix",
+    "category": "craft_rule",
+    "tags": [
+      "four corner opposition",
+      "Truby foils",
+      "character quadrant",
+      "antagonist web"
+    ],
+    "summary": "id: four_corner_opposition_and_foil_matrix...",
+    "relativePath": "four_corner_opposition_and_foil_matrix.md"
+  },
+  {
+    "id": "fragmented_prism_biography_citizen_kane",
+    "title": "The Fragmented Prism Narrative: Citizen Kane & The Unsolvable MacGuffin",
+    "category": "craft_structure",
+    "tags": [
+      "Citizen Kane",
+      "Rosebud",
+      "fragmented biography",
+      "prism perspective"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "fragmented_prism_biography_citizen_kane.md"
+  },
+  {
+    "id": "framing_device_and_nested_narratives",
+    "title": "The Framing Device & Nested Narrative: The Arabian Nights & The Unreliable Relator",
+    "category": "craft_structure",
+    "tags": [
+      "framing device",
+      "nested narrative",
+      "story within story",
+      "teller persona"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "framing_device_and_nested_narratives.md"
+  },
+  {
+    "id": "free_indirect_discourse_and_voice_blending",
+    "title": "Free Indirect Discourse (FID): Voice Blending, Cognitive Dissolution & Narrative Irony",
+    "category": "craft_primitive",
+    "tags": [
+      "free indirect discourse",
+      "narrative distance",
+      "character voice",
+      "internal monologue"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "free_indirect_discourse_and_voice_blending.md"
+  },
+  {
+    "id": "full_manuscript_continuity_pass_methodology",
+    "title": "The Full Manuscript Continuity Pass: Systematic Ripple Remediation",
+    "category": "craft_structure",
+    "tags": [
+      "continuity pass",
+      "manuscript audit",
+      "fact verification",
+      "timeline check"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "full_manuscript_continuity_pass_methodology.md"
+  },
+  {
+    "id": "gothic_domestic_noir_conventions",
+    "title": "Gothic & Domestic Thriller Conventions: The Claustrophobic House & Gaslight Engines",
+    "category": "craft_structure",
+    "tags": [
+      "gothic noir",
+      "domestic suspense",
+      "haunted house",
+      "claustrophobia"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "gothic_domestic_noir_conventions.md"
+  },
+  {
+    "id": "head_hopping_diagnostics_and_voice_safeguards",
+    "title": "Head-Hopping Diagnostics & Voice Safeguards: Distinguishing Error from Craft",
+    "category": "craft_rule",
+    "tags": [
+      "head hopping",
+      "POV violation",
+      "omniscient narration",
+      "narrative distance",
+      "voice safeguard",
+      "POV shift"
+    ],
+    "summary": "id: head_hopping_diagnostics_and_voice_safeguards...",
+    "relativePath": "head_hopping_diagnostics_and_voice_safeguards.md"
+  },
+  {
+    "id": "heist_and_caper_mechanics",
+    "title": "The Heist & Caper Engine: The Long Con, Misdirection & Plant-and-Payoff",
+    "category": "craft_structure",
+    "tags": [
+      "heist",
+      "caper",
+      "Oceans Eleven",
+      "montage plan",
+      "head fake reveal"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "heist_and_caper_mechanics.md"
+  },
+  {
+    "id": "historical_fiction_authenticity",
+    "title": "Historical Fiction & Period Immersion: The Double Horizon & Social Presuppositions",
+    "category": "craft_structure",
+    "tags": [
+      "historical fiction",
+      "period accuracy",
+      "anachronism prevention",
+      "sensory detail"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "historical_fiction_authenticity.md"
+  },
+  {
+    "id": "hitchcock_bomb_suspense",
+    "title": "The Hitchcock Suspense Engine: Dramatic Irony & The Ticking Clock",
+    "category": "craft_structure",
+    "tags": [
+      "Hitchcock bomb",
+      "suspense vs surprise",
+      "ticking clock",
+      "delayed blast"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "hitchcock_bomb_suspense.md"
+  },
+  {
+    "id": "implied_meaning_and_negative_space",
+    "title": "Negative Space in Prose: Implied Meaning, Omission & Reader Co-Creation",
+    "category": "craft_rule",
+    "tags": [
+      "negative space",
+      "Hemingway iceberg",
+      "implied meaning",
+      "omission"
+    ],
+    "summary": "id: implied_meaning_and_negative_space...",
+    "relativePath": "implied_meaning_and_negative_space.md"
+  },
+  {
+    "id": "index",
+    "title": "Static Narrative Craft OKF Catalog",
+    "category": "okf_index",
+    "tags": [],
+    "summary": "title: \"Static Narrative Craft OKF Catalog\"...",
+    "relativePath": "index.md"
+  },
+  {
+    "id": "inexorable_force_antagonist_chigurh",
+    "title": "The Inexorable Force Antagonist: The Unreasoning Moral Principle",
+    "category": "craft_structure",
+    "tags": [
+      "inexorable villain",
+      "Anton Chigurh",
+      "force of nature antagonist",
+      "implacable foe"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "inexorable_force_antagonist_chigurh.md"
+  },
+  {
+    "id": "irony_typology_and_lateral_omission_paralipsis",
+    "title": "The Irony Typology & Gérard Genette",
+    "category": "craft_structure",
+    "tags": [
+      "irony typology",
+      "paralipsis",
+      "lateral omission",
+      "dramatic irony"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "irony_typology_and_lateral_omission_paralipsis.md"
+  },
+  {
+    "id": "jungian_archetypes_and_shadow_integration",
+    "title": "Jungian Psychological Archetypes & Shadow Integration",
+    "category": "craft_structure",
+    "tags": [
+      "Jungian shadow",
+      "archetypes",
+      "anima",
+      "persona",
+      "shadow integration"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "jungian_archetypes_and_shadow_integration.md"
+  },
+  {
+    "id": "kill_your_darlings_salvage_protocol",
+    "title": "Kill Your Darlings Salvage Protocol: Trimming Bloat Without Creative Grief",
+    "category": "craft_rule",
+    "tags": [
+      "kill your darlings",
+      "bloat",
+      "scene pruning",
+      "graveyard vault",
+      "pacing"
+    ],
+    "summary": "id: kill_your_darlings_salvage_protocol...",
+    "relativePath": "kill_your_darlings_salvage_protocol.md"
+  },
+  {
+    "id": "kishotenketsu_four_act_non_conflict_structure",
+    "title": "Kishōtenketsu: East Asian Four-Act Structure",
+    "category": "craft_structure",
+    "tags": [
+      "kishotenketsu",
+      "ki sho ten ketsu",
+      "non-conflict structure",
+      "Japanese narrative"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "kishotenketsu_four_act_non_conflict_structure.md"
+  },
+  {
+    "id": "layered_revision_eight_strata_framework",
+    "title": "The Eight Strata of Revision: Layered Diagnostic Triage from Premise to Polish",
+    "category": "craft_rule",
+    "tags": [
+      "layered revision",
+      "eight strata",
+      "editorial triage",
+      "macro editing",
+      "revision order",
+      "developmental editing"
+    ],
+    "summary": "id: layered_revision_eight_strata_framework...",
+    "relativePath": "layered_revision_eight_strata_framework.md"
+  },
+  {
+    "id": "literary_and_upmarket_fiction_conventions",
+    "title": "Literary & Upmarket Fiction Conventions: Interiority, Ambiguity & Textured Resolution",
+    "category": "craft_structure",
+    "tags": [
+      "literary fiction",
+      "upmarket fiction",
+      "interiority",
+      "moral ambiguity",
+      "textured resolution",
+      "non tidy endings"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "literary_and_upmarket_fiction_conventions.md"
+  },
+  {
+    "id": "moral_degeneration_typology_and_rationalization_engines",
+    "title": "The Typology of Moral Degeneration",
+    "category": "craft_structure",
+    "tags": [
+      "moral degeneration",
+      "corruption arc",
+      "rationalization",
+      "slippery slope"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "moral_degeneration_typology_and_rationalization_engines.md"
+  },
+  {
+    "id": "mru",
+    "title": "Mru",
+    "category": "general",
+    "tags": [],
+    "summary": "To create immersive, forward-moving narrative rhythm that never feels static or detached, prose must follow the biological law of cause and effect:...",
     "relativePath": "mru.md"
   },
   {
-    "id": "value_progression",
-    "title": "Emotional Value Shifts & Polarity",
-    "category": "values",
-    "tags": ["value-shift", "polarity", "emotional-charge", "story-grid"],
-    "summary": "A scene that does not turn on an emotional value polarity (e.g. Hope to Despair, Ignorance to Revelation) is a non-event.",
-    "relativePath": "values.md"
+    "id": "multi_pov_structure",
+    "title": "Multi-POV Orchestration & Perspective Alternation",
+    "category": "craft_structure",
+    "tags": [
+      "multi-POV",
+      "ensemble cast",
+      "POV rotation",
+      "braided perspectives"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "multi_pov_structure.md"
   },
   {
-    "id": "ai_tells",
-    "title": "AI-Tell Detection & Cadence Preservation",
-    "category": "voice",
-    "tags": ["ai-tells", "flattening", "voice", "cliches", "cadence", "rhythm"],
-    "summary": "Detects corporate voice flattening, cliché throat-clearing, and symmetry traps. Preserves idiosyncratic human author voice.",
-    "relativePath": "ai-tells.md"
+    "id": "murch_rule_of_six_pacing",
+    "title": "Walter Murch",
+    "category": "craft_structure",
+    "tags": [
+      "Walter Murch",
+      "rule of six",
+      "film editing in prose",
+      "eye trace"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "murch_rule_of_six_pacing.md"
+  },
+  {
+    "id": "mythic_archetypal_journey",
+    "title": "The Mythic Archetypal Journey: Collective Unconscious & Cyclical Trials",
+    "category": "craft_structure",
+    "tags": [
+      "Heros Journey",
+      "Joseph Campbell",
+      "monomyth",
+      "threshold guardian"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "mythic_archetypal_journey.md"
+  },
+  {
+    "id": "narrative_transitions_temporal_spatial_pov",
+    "title": "Narrative Transitions: Clean Compression across Time, Space & Viewpoint",
+    "category": "craft_rule",
+    "tags": [
+      "narrative transitions",
+      "time skip",
+      "spatial transition",
+      "POV transition",
+      "scene cut",
+      "compression"
+    ],
+    "summary": "id: narrative_transitions_temporal_spatial_pov...",
+    "relativePath": "narrative_transitions_temporal_spatial_pov.md"
+  },
+  {
+    "id": "noir_hardboiled_fatalism",
+    "title": "Noir & Hardboiled Crime: Moral Corrosion, The Cynical Lens & Inevitable Fall",
+    "category": "craft_structure",
+    "tags": [
+      "noir",
+      "hardboiled",
+      "fatalism",
+      "cynicism",
+      "femme fatale"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "noir_hardboiled_fatalism.md"
+  },
+  {
+    "id": "non_human_cognitive_narration",
+    "title": "Non-Human & Synthetic Cognition: Sensory Architecture of AI & Alien POVs",
+    "category": "craft_structure",
+    "tags": [
+      "alien POV",
+      "non-human cognition",
+      "defamiliarized perception",
+      "xenofiction"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "non_human_cognitive_narration.md"
+  },
+  {
+    "id": "nonlinear_timeline_framework",
+    "title": "Nonlinear Timelines, Anachrony & Information Delay",
+    "category": "craft_structure",
+    "tags": [
+      "nonlinear timeline",
+      "anachrony",
+      "flashbacks",
+      "prolepsis",
+      "analepsis"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "nonlinear_timeline_framework.md"
+  },
+  {
+    "id": "novella_form_and_compressed_turn",
+    "title": "The Novella Form: Physics of the 20,000–40,000 Word Corridor",
+    "category": "craft_structure",
+    "tags": [
+      "novella",
+      "novelette",
+      "30k words",
+      "compressed novel",
+      "single turn",
+      "tight cast"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "novella_form_and_compressed_turn.md"
+  },
+  {
+    "id": "police_procedural_evidentiary_and_institutional_engine",
+    "title": "The Police & Legal Procedural: Evidentiary Fair-Play & Institutional Friction",
+    "category": "craft_structure",
+    "tags": [
+      "police procedural",
+      "forensics",
+      "chain of custody",
+      "detective interview"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "police_procedural_evidentiary_and_institutional_engine.md"
+  },
+  {
+    "id": "pov_modes_and_epistemic_boundaries",
+    "title": "POV Modes & Epistemic Boundaries: Knowledge, Inference & Withholding",
+    "category": "craft_primitive",
+    "tags": [
+      "POV modes",
+      "epistemic boundaries",
+      "point of view",
+      "first person",
+      "close third",
+      "omniscient"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "pov_modes_and_epistemic_boundaries.md"
+  },
+  {
+    "id": "primitive_causal_calculus",
+    "title": "Causal Calculus: The",
+    "category": "craft_primitive",
+    "tags": [
+      "causality",
+      "therefore and but",
+      "plot logic",
+      "causal chain"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_causal_calculus.md"
+  },
+  {
+    "id": "primitive_dialectic_value_shift",
+    "title": "The Dialectic Value Shift: The Quantum of Narrative Change",
+    "category": "craft_primitive",
+    "tags": [
+      "value shift",
+      "dramatic charge",
+      "polarity change",
+      "scene turn"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_dialectic_value_shift.md"
+  },
+  {
+    "id": "primitive_epistemic_asymmetry",
+    "title": "The Epistemic Gap: The Three Primal Narrative Drives",
+    "category": "craft_primitive",
+    "tags": [
+      "information gap",
+      "dramatic irony",
+      "reader knowledge",
+      "character ignorance"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_epistemic_asymmetry.md"
+  },
+  {
+    "id": "primitive_experientiality_consciousness",
+    "title": "Experientiality: The Embodied Human Consciousness Primitive",
+    "category": "craft_primitive",
+    "tags": [
+      "experientiality",
+      "qualia",
+      "sensory perception",
+      "subjective reality"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_experientiality_consciousness.md"
+  },
+  {
+    "id": "primitive_focalization_filter_levels",
+    "title": "Focalization & Perspective Filters: Zero, Internal & External Perception",
+    "category": "craft_primitive",
+    "tags": [
+      "focalization",
+      "internal focalization",
+      "narrative perspective",
+      "POV filter"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_focalization_filter_levels.md"
+  },
+  {
+    "id": "primitive_mimetic_desire_triangulation",
+    "title": "Mimetic Desire & Scarcity: The René Girard Triangulation Primitive",
+    "category": "craft_primitive",
+    "tags": [
+      "mimetic desire",
+      "Girardian triangle",
+      "mediator of desire",
+      "rivalry"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_mimetic_desire_triangulation.md"
+  },
+  {
+    "id": "primitive_modal_discrepancy_and_possible_worlds",
+    "title": "Possible Worlds Theory & Modal Discrepancy Matrix",
+    "category": "craft_primitive",
+    "tags": [
+      "possible worlds",
+      "modal discrepancy",
+      "wish world",
+      "narrative tension"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_modal_discrepancy_and_possible_worlds.md"
+  },
+  {
+    "id": "primitive_possible_worlds_teller_sphere",
+    "title": "Possible Worlds Theory: Virtual vs. Actualized Narrative Reality",
+    "category": "craft_primitive",
+    "tags": [
+      "teller sphere",
+      "ontological space",
+      "narrator distance",
+      "narrative levels"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_possible_worlds_teller_sphere.md"
+  },
+  {
+    "id": "primitive_temporal_distortion_mimesis",
+    "title": "Chronesthesia: The Pacing Ratio & Subjective Time Distortion",
+    "category": "craft_primitive",
+    "tags": [
+      "time dilation",
+      "subjective time",
+      "pacing velocity",
+      "temporal compression"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_temporal_distortion_mimesis.md"
+  },
+  {
+    "id": "primitive_theory_of_mind_and_recursive_intentionality",
+    "title": "Theory of Mind Recursion & Narrative Cognitive Limits: Engineering Multi-Order Social Calculation",
+    "category": "craft_primitive",
+    "tags": [
+      "theory of mind",
+      "intentionality",
+      "second order belief",
+      "psychological subtext"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_theory_of_mind_and_recursive_intentionality.md"
+  },
+  {
+    "id": "primitive_triad_of_agency",
+    "title": "The Triad of Agency: Want, Obstacle & Irrevocable Choice",
+    "category": "craft_primitive",
+    "tags": [
+      "protagonist agency",
+      "competence",
+      "desire",
+      "opposition"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "primitive_triad_of_agency.md"
+  },
+  {
+    "id": "procedural_dread_and_administrative_terror",
+    "title": "Procedural Dread: The Bureaucratic Horror Engine & Administrative Restraint",
+    "category": "craft_rule",
+    "tags": [
+      "procedural dread",
+      "Kafkaesque terror",
+      "bureaucratic nightmare",
+      "administrative horror"
+    ],
+    "summary": "id: procedural_dread_and_administrative_terror...",
+    "relativePath": "procedural_dread_and_administrative_terror.md"
+  },
+  {
+    "id": "progression_litrpg_conventions",
+    "title": "Progression Fantasy & LitRPG: Visible Competence, Power Curves & Milestone Catharsis",
+    "category": "craft_structure",
+    "tags": [
+      "progression fantasy",
+      "LitRPG",
+      "power leveling",
+      "advancement ladder"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "progression_litrpg_conventions.md"
+  },
+  {
+    "id": "prose_syntax_and_acoustic_cadence",
+    "title": "Prose Syntax & Acoustic Cadence",
+    "category": "craft_rule",
+    "tags": [
+      "sentence variety",
+      "Gary Provost",
+      "acoustic cadence",
+      "rhythm"
+    ],
+    "summary": "id: prose_syntax_and_acoustic_cadence...",
+    "relativePath": "prose_syntax_and_acoustic_cadence.md"
+  },
+  {
+    "id": "psychic_distance_and_narrative_zoom",
+    "title": "John Gardner",
+    "category": "craft_primitive",
+    "tags": [
+      "psychic distance",
+      "narrative zoom",
+      "camera viscosity",
+      "John Gardner"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "psychic_distance_and_narrative_zoom.md"
+  },
+  {
+    "id": "quiet_tension_and_atmospheric_stillness",
+    "title": "Quiet-Scene Tension & Atmospheric Stillness: Dramatic Pressure without Violence",
+    "category": "craft_rule",
+    "tags": [
+      "quiet tension",
+      "atmospheric stillness",
+      "subtextual pressure",
+      "social stakes",
+      "Ishiguro",
+      "micro tension"
+    ],
+    "summary": "id: quiet_tension_and_atmospheric_stillness...",
+    "relativePath": "quiet_tension_and_atmospheric_stillness.md"
+  },
+  {
+    "id": "red_herring_misdirection_matrix",
+    "title": "The Misdirection Matrix: Red Herrings, Plausible Guilt & Double Bluffs",
+    "category": "craft_rule",
+    "tags": [
+      "red herring",
+      "misdirection",
+      "false suspect",
+      "clue camouflage"
+    ],
+    "summary": "id: red_herring_misdirection_matrix...",
+    "relativePath": "red_herring_misdirection_matrix.md"
+  },
+  {
+    "id": "research_epistemic_status_and_uncertainty_management",
+    "title": "Research, Fact & Uncertainty Management: The Six-Tier Epistemic Fact Ledger",
+    "category": "craft_rule",
+    "tags": [
+      "research fact",
+      "uncertainty management",
+      "canon verification",
+      "epistemic status",
+      "fact checking",
+      "speculative license"
+    ],
+    "summary": "id: research_epistemic_status_and_uncertainty_management...",
+    "relativePath": "research_epistemic_status_and_uncertainty_management.md"
+  },
+  {
+    "id": "romance_escalation_ladder",
+    "title": "The Romance Heat & Vulnerability Ladder: Resistance to Intimacy",
+    "category": "craft_structure",
+    "tags": [
+      "romance beats",
+      "heat ladder",
+      "intimacy escalation",
+      "HEA",
+      "grovel"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "romance_escalation_ladder.md"
+  },
+  {
+    "id": "romance_mutual_agency_and_authentic_conflict",
+    "title": "Romance Architecture: Mutual Agency, Intimacy Barriers & Authentic Conflict",
+    "category": "craft_structure",
+    "tags": [
+      "romance conflict",
+      "mutual agency",
+      "romance barriers",
+      "manufactured misunderstanding",
+      "HEA",
+      "intimacy"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "romance_mutual_agency_and_authentic_conflict.md"
+  },
+  {
+    "id": "sandersons_laws_of_magic_and_magic_system_engineering",
+    "title": "Brandon Sanderson",
+    "category": "craft_rule",
+    "tags": [
+      "Sandersons laws",
+      "magic systems",
+      "costs and limitations",
+      "hard magic"
+    ],
+    "summary": "id: sandersons_laws_of_magic_and_magic_system_engineering...",
+    "relativePath": "sandersons_laws_of_magic_and_magic_system_engineering.md"
+  },
+  {
+    "id": "satirical_escalation_blueprint",
+    "title": "Satirical Escalation & Institutional Irony: The Straight-Man Dynamic",
+    "category": "craft_structure",
+    "tags": [
+      "satire",
+      "satirical escalation",
+      "Swiftian",
+      "parody",
+      "institutional critique"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "satirical_escalation_blueprint.md"
+  },
+  {
+    "id": "save_the_cat_fifteen_beat_structural_blueprint",
+    "title": "Save the Cat! The 15-Beat Structural Blueprint",
+    "category": "craft_structure",
+    "tags": [
+      "Save the Cat",
+      "Blake Snyder",
+      "fifteen beats",
+      "all is lost",
+      "break into two"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "save_the_cat_fifteen_beat_structural_blueprint.md"
+  },
+  {
+    "id": "scale_adaptive_architecture_and_authorial_sovereignty",
+    "title": "Scale-Adaptive Architecture: The Complexity Valve & The Five Foundational Principles of Authorial Sovereignty",
+    "category": "craft_structure",
+    "tags": [
+      "scale-adaptive",
+      "author sovereignty",
+      "napkin to universe",
+      "complexity valve",
+      "ICM",
+      "5 foundational principles",
+      "author exception"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "scale_adaptive_architecture_and_authorial_sovereignty.md"
+  },
+  {
+    "id": "scene_level_five_commandments_coyne",
+    "title": "The Five Commandments of the Micro-Scene: Shawn Coyne",
+    "category": "craft_structure",
+    "tags": [
+      "five commandments",
+      "Story Grid",
+      "Shawn Coyne",
+      "inciting incident",
+      "turning point"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "scene_level_five_commandments_coyne.md"
+  },
+  {
+    "id": "scene_sequel_aftermath_engine",
+    "title": "The Scene-Sequel Aftermath Engine: Reaction, Dilemma, Decision & Changed Intent",
+    "category": "craft_structure",
+    "tags": [
+      "scene sequel",
+      "aftermath",
+      "Dwight Swain",
+      "reaction dilemma decision",
+      "pacing"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "scene_sequel_aftermath_engine.md"
+  },
+  {
+    "id": "series_architecture_and_cross_book_arcs",
+    "title": "Series Architecture: Macro-Arcs, Lore Debt, and Value Shifts",
+    "category": "craft_structure",
+    "tags": [
+      "series",
+      "cross-book",
+      "trilogy",
+      "middle book",
+      "lore debt",
+      "series arc",
+      "multi-volume"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "series_architecture_and_cross_book_arcs.md"
+  },
+  {
+    "id": "setting_as_dramatic_agent_and_constraint",
+    "title": "Setting as Dramatic Agent: Environmental Friction, Systems & Embodied Stakes",
+    "category": "craft_structure",
+    "tags": [
+      "setting as character",
+      "environmental friction",
+      "physical constraint",
+      "organic motifs",
+      "setting stakes"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "setting_as_dramatic_agent_and_constraint.md"
+  },
+  {
+    "id": "short_story_form_and_single_effect",
+    "title": "The Short Story Engine: Single Effect, Compression, and Late Entry",
+    "category": "craft_structure",
+    "tags": [
+      "short story",
+      "flash fiction",
+      "single effect",
+      "poe",
+      "compression",
+      "epiphany",
+      "unity of effect"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "short_story_form_and_single_effect.md"
+  },
+  {
+    "id": "spatial_transit_calculus_and_environmental_friction",
+    "title": "Spatial Transit Calculus: Travel Velocity, Logistics & Anti-Teleport Discipline",
+    "category": "craft_rule",
+    "tags": [
+      "travel",
+      "transit",
+      "distance",
+      "cartography",
+      "logistics",
+      "teleportation",
+      "continuity"
+    ],
+    "summary": "id: spatial_transit_calculus_and_environmental_friction...",
+    "relativePath": "spatial_transit_calculus_and_environmental_friction.md"
+  },
+  {
+    "id": "speculative_technology_friction_and_cybernetic_decay",
+    "title": "Speculative Technology Friction: Cybernetic Decay, Hardware Debt & Corporate DRM",
+    "category": "craft_structure",
+    "tags": [
+      "cyberpunk",
+      "hard scifi",
+      "cyberware",
+      "tech friction",
+      "obsolescence",
+      "william gibson",
+      "philip k dick"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "speculative_technology_friction_and_cybernetic_decay.md"
+  },
+  {
+    "id": "status_transactions_and_dominance_choreography",
+    "title": "Keith Johnstone",
+    "category": "craft_rule",
+    "tags": [
+      "status transactions",
+      "Keith Johnstone",
+      "dominance",
+      "power dynamics"
+    ],
+    "summary": "id: status_transactions_and_dominance_choreography...",
+    "relativePath": "status_transactions_and_dominance_choreography.md"
+  },
+  {
+    "id": "story_grid_macro",
+    "title": "Story Grid 5 Core Primal Shifts",
+    "category": "craft_structure",
+    "tags": [
+      "Story Grid",
+      "macro structure",
+      "beginning middle end",
+      "Shawn Coyne",
+      "controlling idea"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "story_grid_macro.md"
+  },
+  {
+    "id": "structural_blueprint_rosetta_stone",
+    "title": "Structural Blueprint Rosetta Stone: Translating Plotting Frameworks Across Beat Models",
+    "category": "craft_structure",
+    "tags": [
+      "structure",
+      "rosetta stone",
+      "save the cat",
+      "seven point",
+      "story circle",
+      "heros journey",
+      "snowflake method"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "structural_blueprint_rosetta_stone.md"
+  },
+  {
+    "id": "subtext_and_implied_meaning",
+    "title": "Dialogue Subtext: The Iceberg Theory & Surface-Depth Tension",
+    "category": "craft_structure",
+    "tags": [
+      "subtext",
+      "implicature",
+      "Gricean maxims",
+      "unspoken desire"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "subtext_and_implied_meaning.md"
+  },
+  {
+    "id": "surreal_atmosphere_dream_logic",
+    "title": "Surreal Atmosphere & Dream Logic: Synesthesia & Cognitive Destabilization",
+    "category": "craft_rule",
+    "tags": [
+      "dream logic",
+      "surreal atmosphere",
+      "uncanny",
+      "defamiliarization"
+    ],
+    "summary": "id: surreal_atmosphere_dream_logic...",
+    "relativePath": "surreal_atmosphere_dream_logic.md"
+  },
+  {
+    "id": "swain_mru_and_pacing_velocity_equations",
+    "title": "Dwight Swain",
+    "category": "craft_rule",
+    "tags": [
+      "Dwight Swain",
+      "MRU",
+      "stimulus response",
+      "pacing velocity"
+    ],
+    "summary": "id: swain_mru_and_pacing_velocity_equations...",
+    "relativePath": "swain_mru_and_pacing_velocity_equations.md"
+  },
+  {
+    "id": "sympathetic_institutional_antagonism_and_moral_justification",
+    "title": "Sympathetic Institutional Antagonism: Noble Justifications & The Tragedy of Order",
+    "category": "craft_structure",
+    "tags": [
+      "antagonist",
+      "villain",
+      "moral justification",
+      "tywin lannister",
+      "inspector javert",
+      "truby",
+      "institutions"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "sympathetic_institutional_antagonism_and_moral_justification.md"
+  },
+  {
+    "id": "synonyms",
+    "title": "Synonyms",
+    "category": "general",
+    "tags": [],
+    "summary": "This index maps colloquial craft symptoms, workshop idioms, and reader-facing storytelling problems to authoritative OKF craft modules in `_config/okf_craft/`. The `soundingboard c...",
+    "relativePath": "synonyms.md"
+  },
+  {
+    "id": "syntactic_cadence_dialects_and_authorial_cadence",
+    "title": "Syntactic Cadence Dialects: Hemingway Staccato, Faulkner Periods & McCarthy Polysyndeton",
+    "category": "craft_rule",
+    "tags": [
+      "syntax",
+      "cadence",
+      "rhythm",
+      "hemingway",
+      "faulkner",
+      "cormac mccarthy",
+      "polysyndeton",
+      "prose style"
+    ],
+    "summary": "id: syntactic_cadence_dialects_and_authorial_cadence...",
+    "relativePath": "syntactic_cadence_dialects_and_authorial_cadence.md"
+  },
+  {
+    "id": "syntactic_symbolism_and_cumulative_sentence_rhetoric",
+    "title": "Syntactic Symbolism & Cumulative Sentence Rhetoric",
+    "category": "craft_rule",
+    "tags": [
+      "Christensen rhetoric",
+      "cumulative sentences",
+      "syntactic symbolism",
+      "cadence"
+    ],
+    "summary": "id: syntactic_symbolism_and_cumulative_sentence_rhetoric...",
+    "relativePath": "syntactic_symbolism_and_cumulative_sentence_rhetoric.md"
+  },
+  {
+    "id": "systemic_opposition_and_antagonist_logic",
+    "title": "Systemic Opposition & Antagonist Logic: Beyond the Monolithic Villain",
+    "category": "craft_rule",
+    "tags": [
+      "systemic opposition",
+      "antagonist logic",
+      "villain motivation",
+      "institutional pressure",
+      "secondary characters"
+    ],
+    "summary": "id: systemic_opposition_and_antagonist_logic...",
+    "relativePath": "systemic_opposition_and_antagonist_logic.md"
+  },
+  {
+    "id": "tactical_onomastics_and_world_naming_systems",
+    "title": "Tactical Onomastics: World Naming Logic, Phonotactics & Anti-Slop Discipline",
+    "category": "craft_structure",
+    "tags": [
+      "naming",
+      "onomastics",
+      "character names",
+      "toponymy",
+      "worldbuilding",
+      "phonotactics"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "tactical_onomastics_and_world_naming_systems.md"
+  },
+  {
+    "id": "tenacious_writing_and_sanderson_le_guin_habits",
+    "title": "The Tenacious Engine: Prolific Architecture, Closed Doors & Relentless Execution",
+    "category": "craft_rule",
+    "tags": [
+      "writing habits",
+      "Ursula Le Guin",
+      "word count pacing",
+      "creative stamina"
+    ],
+    "summary": "id: tenacious_writing_and_sanderson_le_guin_habits...",
+    "relativePath": "tenacious_writing_and_sanderson_le_guin_habits.md"
+  },
+  {
+    "id": "textual_actual_worlds_and_modal_narratology",
+    "title": "Textual Actual Worlds (TAW) & Modal Narratology",
+    "category": "craft_primitive",
+    "tags": [
+      "possible worlds",
+      "modal narratology",
+      "Marie-Laure Ryan",
+      "worldbuilding logic"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "textual_actual_worlds_and_modal_narratology.md"
+  },
+  {
+    "id": "the_bracket_method_developmental_editing",
+    "title": "The Bracket Method: Developmental Editing & Micro-Beat Sequencing",
+    "category": "craft_structure",
+    "tags": [
+      "bracket method",
+      "developmental editing",
+      "emotional sequencing",
+      "Swain MRU",
+      "Coyne beats"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "the_bracket_method_developmental_editing.md"
+  },
+  {
+    "id": "three_registers_of_dialogue_subtext",
+    "title": "The Three Registers of Dramatic Dialogue",
+    "category": "craft_rule",
+    "tags": [
+      "dialogue subtext",
+      "spoken text",
+      "inner text",
+      "unvoiced inchoate"
+    ],
+    "summary": "id: three_registers_of_dialogue_subtext...",
+    "relativePath": "three_registers_of_dialogue_subtext.md"
+  },
+  {
+    "id": "thriller_escalation_pacing",
+    "title": "Thriller Escalation: Reversals, False Relief & Pacing Loops",
+    "category": "craft_structure",
+    "tags": [
+      "thriller pacing",
+      "escalation contour",
+      "ticking clock",
+      "danger compression"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "thriller_escalation_pacing.md"
+  },
+  {
+    "id": "tragic_corruption_arc_godfather",
+    "title": "The Tragic Corruption Arc: The Inevitable Surrender to the Shadow",
+    "category": "craft_structure",
+    "tags": [
+      "corruption arc",
+      "Godfather",
+      "Michael Corleone",
+      "moral descent"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "tragic_corruption_arc_godfather.md"
+  },
+  {
+    "id": "tragic_flaw_investigation_chinatown",
+    "title": "The Tragic Flaw Investigation: Chinatown",
+    "category": "craft_structure",
+    "tags": [
+      "Chinatown",
+      "tragic flaw",
+      "hamartia",
+      "fatal investigation",
+      "hubris"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "tragic_flaw_investigation_chinatown.md"
+  },
+  {
+    "id": "truby_designing_principle_and_moral_argument",
+    "title": "John Truby",
+    "category": "craft_structure",
+    "tags": [
+      "John Truby",
+      "designing principle",
+      "moral argument",
+      "premise line"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "truby_designing_principle_and_moral_argument.md"
+  },
+  {
+    "id": "universal_narrative_lexicon_rosetta_stone",
+    "title": "The Universal Narrative Rosetta Stone: Cross-School Craft Lexicon & Structural Mapping Ontology",
+    "category": "craft_structure",
+    "tags": [
+      "Rosetta Stone",
+      "narrative lexicon",
+      "craft mapping",
+      "Save the Cat vs Story Grid"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "universal_narrative_lexicon_rosetta_stone.md"
+  },
+  {
+    "id": "unreliable_narrator_psychological_fracture",
+    "title": "The Unreliable Narrator: Fractured Perception, Active Gaslighting & The Breadcrumb Trial",
+    "category": "craft_structure",
+    "tags": [
+      "unreliable narrator",
+      "narrative fracture",
+      "confabulation",
+      "gaslighting"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "unreliable_narrator_psychological_fracture.md"
+  },
+  {
+    "id": "unreliable_retrospective_narration_and_epistemic_gaps",
+    "title": "Unreliable Retrospective Narration: Epistemic Gaps, Self-Exoneration & Memory Erosion",
+    "category": "craft_structure",
+    "tags": [
+      "unreliable narrator",
+      "retrospective",
+      "gene wolfe",
+      "kazuo ishiguro",
+      "nabokov",
+      "epistemic gap",
+      "memory"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "unreliable_retrospective_narration_and_epistemic_gaps.md"
+  },
+  {
+    "id": "vertical_spatial_allegory_parasite",
+    "title": "Vertical Spatial Allegory: Architecture as Class Conflict & The Sub-Basement Reveal",
+    "category": "craft_structure",
+    "tags": [
+      "Parasite",
+      "vertical allegory",
+      "spatial geography",
+      "class architecture"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "vertical_spatial_allegory_parasite.md"
+  },
+  {
+    "id": "viewpoint_filtered_sensory_selection",
+    "title": "Viewpoint-Filtered Sensory Selection: Perceptual Bias over Inventory",
+    "category": "craft_primitive",
+    "tags": [
+      "sensory selection",
+      "perceptual bias",
+      "camera eye",
+      "description",
+      "sensory budget",
+      "sparse prose"
+    ],
+    "summary": "type: craft_primitive...",
+    "relativePath": "viewpoint_filtered_sensory_selection.md"
+  },
+  {
+    "id": "vogler_mythic_character_masks",
+    "title": "The Mythic Character Masks: Archetypal Functions & Mask-Shifting",
+    "category": "craft_structure",
+    "tags": [
+      "Christopher Vogler",
+      "Writers Journey",
+      "character masks",
+      "mentor herald trickster"
+    ],
+    "summary": "type: craft_structure...",
+    "relativePath": "vogler_mythic_character_masks.md"
+  },
+  {
+    "id": "voice_differentiation_across_ensemble",
+    "title": "Voice Differentiation: Engineering Non-Homogeneous Cast Registers",
+    "category": "craft_rule",
+    "tags": [
+      "voice",
+      "dialogue",
+      "idiolect",
+      "ensemble",
+      "character voice",
+      "polyphony",
+      "heteroglossia"
+    ],
+    "summary": "id: voice_differentiation_across_ensemble...",
+    "relativePath": "voice_differentiation_across_ensemble.md"
   }
 ]
